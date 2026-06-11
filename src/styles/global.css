@@ -111,7 +111,6 @@ body[data-bg-image="true"]::before {
 
   /* 图片网格 */
   --grid_gap: 4px;
-  --image_max_height_single: 180px;
 
   /* 圆角 */
   --border_radius_card: 4px;
@@ -300,8 +299,8 @@ button, a {
 .image-grid.grid-1 img {
   width: 100%;
   height: auto;
-  max-height: var(--image_max_height_single);
-  object-fit: cover;
+  max-height: none;
+  object-fit: contain;
   border-radius: var(--border_radius_card);
   cursor: pointer;
 }
@@ -417,7 +416,7 @@ button, a {
   border: none;
 }
 
-.music-player .music-play-btn:hover { color: #fff; }
+html[data-theme='dark'] .music-player .music-play-btn { color: rgba(255, 255, 255, 0.85); }
 .music-player .music-play-btn .icon-pause { display: none; }
 .music-player .music-play-btn.playing .icon-play { display: none; }
 .music-player .music-play-btn.playing .icon-pause { display: block; }
@@ -547,7 +546,6 @@ button, a {
 @media screen and (max-width: 550px) {
   :root {
     --avatar_size: 40px;
-    --image_max_height_single: 200px;
   }
 
   .page {
