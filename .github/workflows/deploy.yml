@@ -28,7 +28,11 @@ jobs:
 
       - name: Build for GitHub Pages (subpath /Murmur/)
         run: |
+          # 修改 Astro 配置：添加 base 和 site URL
           sed -i "s|site: 'https://izhch.com'|site: 'https://izhch.github.io/Murmur', base: '/Murmur'|" astro.config.mjs
+          # 修改 config.ts：将图片路径从 /avatar/ 改为 /Murmur/avatar/
+          sed -i "s|'/avatar/|'/Murmur/avatar/|g" src/config.ts
+          sed -i "s|'/banner/|'/Murmur/banner/|g" src/config.ts
           npm run build
 
       - name: Upload artifact
