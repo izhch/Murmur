@@ -99,7 +99,8 @@ body[data-bg-image="true"]::before {
   --cover_nickname_bottom_padding: 25px;
   --signature_font_size: 14px;
   --signature_color: #999;
-  --signature_top_padding: 25px; /* 封面与第一条动态的距离 */
+  --signature_top_padding: 23px; /* 封面与签名的距离 */
+  --feed_top_spacing: -20px; /* 签名与第一条动态的距离 */
 
   /* 动态卡片 */
   --avatar_size: 36px;
@@ -175,7 +176,7 @@ button, a {
     3px 0 12px rgba(0, 0, 0, 0.05);
 }
 
-.feed { background: var(--background_color_container); }
+.feed { background: var(--background_color_container); margin-top: var(--feed_top_spacing, 50px); }
 
 /* ====================================================================
  * 6. 动态卡片（.moment）
