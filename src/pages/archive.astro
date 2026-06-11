@@ -27,7 +27,7 @@ const sortedGroups = Object.entries(groupedMoments)
     const [year, month] = key.split('-');
     return {
       key,
-      year: year.slice(2),
+      year,
       month,
       count: items.length,
     };
@@ -35,14 +35,42 @@ const sortedGroups = Object.entries(groupedMoments)
 ---
 
 <BaseLayout title={`归档${siteMeta.titleSeparator}${siteMeta.siteName}`}>
-  <main style="padding: var(--spacing_l);">
-    <div style="display: flex; flex-direction: column; gap: var(--spacing_s);">
+  <main class="archive-page">
+    <div class="archive-list">
       {sortedGroups.map((group) => (
-        <a href={`/archive/${group.key}`} style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing_m) 0; font-size: var(--font_size_tall); color: var(--text_color_primary); border-bottom: 1px solid var(--splitline_color); text-decoration: none; transition: color 0.2s ease; font-variant-numeric: tabular-nums;">
-          <span>{group.year} / {group.month} / 01</span>
-          <span style="color: var(--text_color_secondary);">{group.count}</span>
+        <a href={`/archive/${group.key}`} class="archive-item">
+          <span class="archive-date">{group.year} / {group.month}</span>
+          <span class="archive-count">{group.count}</span>
         </a>
       ))}
     </div>
   </main>
 </BaseLayout>
+
+<style>
+  .archive-page { padding: 60px 80px; }
+  .archive-list { display: flex; flex-direction: column; gap: 0; max-width: 420px; margin: 0 auto; }
+  .archive-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 8px;
+    font-size: 16px;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--text_color_primary);
+    border-bottom: 1px solid var(--splitline_color);
+    text-decoration: none;
+    transition: color 0.3s ease, padding-left 0.3s ease, padding-right 0.3s ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .archive-date { font-family: 'SF Mono', 'Menlo', monospace; }
+  .archive-count { color: var(--text_color_tertiary); font-family: 'SF Mono', 'Menlo', monospace; }
+  .archive-item:hover { color: var(--text_color_highlight); padding-left: 16px; padding-right: 0; }
+  .archive-item:hover .archive-count { color: var(--text_color_highlight); }
+
+  @media screen and (max-width: 550px) {
+    .archive-page { padding: 40px 32px; }
+    .archive-item { font-size: 15px; padding: 18px 4px; }
+  }
+</style>
