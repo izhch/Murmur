@@ -26,8 +26,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
-        run: npm run build
+      - name: Build for GitHub Pages (subpath /Murmur/)
+        run: |
+          sed -i "s|site: 'https://izhch.com'|site: 'https://izhch.github.io/Murmur', base: '/Murmur'|" astro.config.mjs
+          npm run build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
