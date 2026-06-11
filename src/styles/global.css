@@ -408,7 +408,7 @@ button, a {
   width: 28px;
   height: 28px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
