@@ -12,6 +12,7 @@ const LOAD_MORE_STEP = 5;
 
 const entries = await getCollection('moments');
 const allMoments = entries
+  .filter((entry) => !entry.data.draft)
   .map((entry) => ({
     id: entry.slug,
     slug: entry.slug,

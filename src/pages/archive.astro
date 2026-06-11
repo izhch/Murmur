@@ -7,8 +7,9 @@ import { siteMeta } from '../config.ts';
 import { getCollection } from 'astro:content';
 
 const entries = await getCollection('moments');
+const publishedEntries = entries.filter((entry) => !entry.data.draft);
 
-const groupedMoments = entries.reduce((acc, entry) => {
+const groupedMoments = publishedEntries.reduce((acc, entry) => {
   const date = entry.data.date instanceof Date
     ? entry.data.date
     : new Date(entry.data.date);

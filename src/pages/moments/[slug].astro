@@ -14,7 +14,8 @@ const profile = siteProfile;
 
 export async function getStaticPaths() {
   const entries = await getCollection('moments');
-  return entries.map((entry) => ({
+  const publishedEntries = entries.filter((entry) => !entry.data.draft);
+  return publishedEntries.map((entry) => ({
     params: { slug: entry.id },
     props: { entry },
   }));

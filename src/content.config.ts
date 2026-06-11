@@ -12,6 +12,7 @@ const moments = defineCollection({
   schema: z.object({
     title: z.string().optional(),
     date: z.coerce.date(),
+    draft: z.boolean().optional().default(false),
     images: z.array(z.string()).optional(),
     music: z.object({
       title: z.string(),
