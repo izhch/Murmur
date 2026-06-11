@@ -7,8 +7,9 @@ import { siteProfile, siteMeta } from '../config.ts';
 import { getCollection } from 'astro:content';
 
 const entries = await getCollection('moments');
+const publishedEntries = entries.filter((entry) => !entry.data.draft);
 
-const allPhotos = entries
+const allPhotos = publishedEntries
   .filter((entry) => entry.data.images && entry.data.images.length > 0)
   .flatMap((entry) =>
     entry.data.images!.map((url) => ({
