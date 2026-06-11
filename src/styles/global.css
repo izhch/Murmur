@@ -295,7 +295,7 @@ button, a {
   width: var(--content_width_scale, 66%);
 }
 
-.image-grid.grid-1 { width: var(--content_width_scale, 66%); }
+.image-grid.grid-1 { width: var(--content_width_scale_single, 50%); max-width: 400px; }
 .image-grid.grid-1 img {
   width: 100%;
   height: auto;
