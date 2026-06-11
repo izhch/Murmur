@@ -1,0 +1,857 @@
+/* ====================================================================
+ * 全局样式文件
+ *
+ * 设计原则：
+ *  - 封面/菜单/签名样式由 ProfileHeader.astro 组件内部管理
+ *  - 全局样式只负责：CSS 变量系统 / 基础重置 / 页面容器 / 动态卡片 / 操作按钮 / 图片 / 音乐 / 主题按钮 / 移动端
+ * ==================================================================== */
+
+/* ====================================================================
+ * 1. 基础重置
+ * ==================================================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: linear-gradient(180deg, var(--background_color_container) 0%, var(--background_color_page) 100%);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 背景图片层（通过 data-bg-image="true" 控制是否显示） */
+body[data-bg-image="true"]::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: var(--bg-image-url, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: var(--bg-image-opacity, 0.05);
+  filter: blur(var(--bg-image-blur, 0px));
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ====================================================================
+ * 2. CSS 变量系统（核心设计变量）
+ * ==================================================================== */
+
+/* 2.1 颜色 */
+:root {
+  /* 文字 */
+  --text_color_primary: #191919;
+  --text_color_secondary: #b2b2b2;
+  --text_color_tertiary: #999999;
+  --text_color_highlight: #576b95;
+  --text_color_reversal: #fff;
+
+  /* 背景 */
+  --background_color_page: #f0f0f0;
+  --background_color_container: #fff;
+  --background_color_block: #f7f7f7;
+  --background_color_button: #ececec;
+
+  /* 分割线 & 边框 */
+  --splitline_color: #f2f2f2;
+  --border_color: #e5e5e5;
+
+  /* 特殊颜色 */
+  --special_color_red: #fa5151;
+  --special_color_yellow: #fa9d3b;
+  --special_color_green: #07c160;
+}
+
+/* 2.2 字体大小 */
+:root {
+  --font_size: 16px;
+  --font_size_grande: var(--font_size);
+  --font_size_tall: calc(var(--font_size) - 2px);
+  --font_size_short: calc(var(--font_size) - 4px);
+}
+
+/* 2.3 间距 */
+:root {
+  --spacing_xs: 4px;
+  --spacing_s: 8px;
+  --spacing_m: 12px;
+  --spacing_l: 16px;
+  --spacing_xl: 20px;
+  --spacing_xxl: 25px;
+  --spacing_xxxl: 30px;
+}
+
+/* 2.4 布局变量（按页面顺序） */
+:root {
+  /* 页面容器 */
+  --page_max_width: 550px;
+  --page_max_width_container: 640px;
+
+  /* 封面 & 签名（ProfileHeader 用） */
+  --cover_height: 325px;
+  --cover_avatar_size: 64px;
+  --cover_avatar_radius: 6px;
+  --cover_nickname_size: 18px;
+  --cover_nickname_bottom_padding: 25px;
+  --signature_font_size: 14px;
+  --signature_color: #999;
+  --signature_top_padding: 25px; /* 封面与第一条动态的距离 */
+
+  /* 动态卡片 */
+  --avatar_size: 36px;
+  --card_padding: 20px 25px 0;
+  --card_padding_bottom: 20px;
+  --card_content_spacing: 4px;
+  --card_meta_spacing: 10px;
+
+  /* 图片网格 */
+  --grid_gap: 4px;
+  --image_max_height_single: 180px;
+
+  /* 圆角 */
+  --border_radius_card: 4px;
+  --border_radius_card_lg: 6px;
+}
+
+/* ====================================================================
+ * 3. 暗色模式
+ * ==================================================================== */
+:root[data-theme='dark'] {
+  --text_color_primary: #eaeaea;
+  --text_color_secondary: #8a8a8a;
+  --text_color_tertiary: #7d7d7d;
+  --text_color_highlight: #7d90a9;
+  --background_color_page: #1a1a1a;
+  --background_color_container: #2c2c2c;
+  --background_color_block: #363636;
+  --background_color_button: #3d3d3d;
+  --splitline_color: #323232;
+  --border_color: #4a4a4a;
+}
+
+/* ====================================================================
+ * 4. 基础 HTML 样式
+ * ==================================================================== */
+html {
+  font: normal var(--font_size) / 1.5 -apple-system, BlinkMacSystemFont,
+    'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  color: var(--text_color_primary);
+  background-color: var(--background_color_page);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--text_color_highlight); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { display: block; max-width: 100%; }
+
+button {
+  font: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+button, a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ====================================================================
+ * 5. 页面容器
+ * ==================================================================== */
+.page {
+  max-width: var(--page_max_width_container);
+  margin: 0 auto;
+  background: var(--background_color_container);
+  min-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow:
+    -3px 0 12px rgba(0, 0, 0, 0.05),
+    3px 0 12px rgba(0, 0, 0, 0.05);
+}
+
+.feed { background: var(--background_color_container); }
+
+/* ====================================================================
+ * 6. 动态卡片（.moment）
+ * ==================================================================== */
+.moment {
+  display: flex;
+  gap: var(--spacing_s);
+  padding: var(--card_padding);
+  background: var(--background_color_container);
+}
+
+/* 头像 */
+.moment .avatar-container { flex-shrink: 0; }
+.moment .avatar {
+  width: var(--avatar_size);
+  height: var(--avatar_size);
+  border-radius: var(--border_radius_card);
+  object-fit: cover;
+}
+
+/* 内容区 */
+.moment .body {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: var(--card_padding_bottom);
+  border-bottom: 1px solid var(--splitline_color);
+}
+
+/* 作者名 */
+.moment .author {
+  font-size: var(--font_size_tall);
+  font-weight: 600;
+  color: var(--text_color_highlight);
+  line-height: 1.3;
+}
+
+/* 正文 */
+.moment .content {
+  margin: 0;
+  padding: 0;
+  margin-top: var(--card_content_spacing);
+  margin-left: 0;
+  padding-left: 0;
+  text-indent: 0;
+  font-size: var(--font_size_tall);
+  font-weight: 400;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: var(--text_color_primary);
+}
+
+/* 确保 p 标签没有默认边距 */
+.moment p {
+  margin: 0;
+  padding: 0;
+  text-indent: 0;
+}
+
+/* 元信息：时间 + 操作按钮 */
+.moment .meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--card_meta_spacing);
+}
+
+.moment .time {
+  font-size: var(--font_size_short);
+  color: var(--text_color_tertiary);
+}
+
+.moment .location {
+  font-size: var(--font_size_short);
+  font-weight: 350;
+  color: var(--text_color_highlight);
+}
+
+/* ====================================================================
+ * 7. 文字展开/收起
+ * ==================================================================== */
+.more-area { display: inline; }
+.more-content { white-space: pre-wrap; word-break: break-word; }
+.more-area .more-content { display: none; }
+.more-area .more-ellipsis {
+  display: inline;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.more-area.expanded .more-content { display: inline; }
+.more-area.expanded .more-ellipsis { display: none; }
+
+.more-link {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: var(--spacing_xs);
+  color: var(--text_color_highlight);
+  font-size: var(--font_size_short);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.more-area .more-link.less { display: none; }
+.more-area.expanded .more-link.more { display: none; }
+.more-area.expanded .more-link.less { display: inline; }
+.more-link:hover { text-decoration: underline; }
+
+/* ====================================================================
+ * 8. 图片网格（九宫格）
+ * ==================================================================== */
+.image-grid {
+  display: grid;
+  gap: var(--grid_gap);
+  margin-top: var(--spacing_s);
+  width: var(--content_width_scale, 66%);
+}
+
+.image-grid.grid-1 { width: var(--content_width_scale, 66%); }
+.image-grid.grid-1 img {
+  width: 100%;
+  height: auto;
+  max-height: var(--image_max_height_single);
+  object-fit: cover;
+  border-radius: var(--border_radius_card);
+  cursor: pointer;
+}
+
+.image-grid.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+  width: var(--content_width_scale, 66%);
+}
+
+.image-grid.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  width: var(--content_width_scale, 66%);
+}
+
+.image-grid.grid-4 {
+  grid-template-columns: repeat(2, 1fr);
+  width: var(--content_width_scale, 66%);
+}
+
+.image-grid.grid-multiple {
+  grid-template-columns: repeat(3, 1fr);
+  width: var(--content_width_scale, 66%);
+}
+
+.image-grid.grid-2 img,
+.image-grid.grid-3 img,
+.image-grid.grid-4 img,
+.image-grid.grid-multiple img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--border_radius_card);
+  cursor: pointer;
+}
+
+/* ====================================================================
+ * 9. 音乐播放器
+ * ==================================================================== */
+.music-player {
+  margin-top: var(--spacing_s);
+  border-radius: var(--border_radius_card_lg);
+  overflow: hidden;
+  max-width: 280px;
+  height: 72px;
+  display: flex;
+  cursor: pointer;
+}
+
+.music-player .music-cover {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.music-player .music-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music-player .music-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.music-player .music-info-gradient {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing_s);
+  padding: 0 var(--spacing_l);
+  background: linear-gradient(to right, #667eea 0%, rgba(102, 126, 234, 0) 100%);
+}
+
+.music-player .music-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.music-player .music-title {
+  font-size: var(--font_size_short);
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.music-player .music-artist {
+  font-size: var(--font_size_short);
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.music-player .music-play-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  border: none;
+}
+
+.music-player .music-play-btn:hover { color: #fff; }
+.music-player .music-play-btn .icon-pause { display: none; }
+.music-player .music-play-btn.playing .icon-play { display: none; }
+.music-player .music-play-btn.playing .icon-pause { display: block; }
+.music-player .music-audio { display: none; }
+
+/* ====================================================================
+ * 10. 视频播放器
+ * ==================================================================== */
+.video-player {
+  margin-top: var(--spacing_s);
+  max-width: var(--content_width_scale, 66%);
+  border-radius: var(--border_radius_card);
+  overflow: hidden;
+  background: #000;
+}
+
+.video-player video {
+  width: 100%;
+  display: block;
+}
+
+/* ====================================================================
+ * 11. 操作按钮（点赞 / 评论）
+ * ==================================================================== */
+.moment .actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing_xl);
+}
+
+.moment .action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing_xs);
+  padding: 0;
+  color: var(--text_color_tertiary);
+  font-size: var(--font_size_short);
+  line-height: 1;
+  cursor: pointer;
+  border: none;
+  background: none;
+  user-select: none;
+}
+
+.moment .action-btn .icon { flex-shrink: 0; }
+.moment .action-btn .icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.moment .count {
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+/* 点赞按钮 */
+.moment .like-btn:hover { color: var(--special_color_red); }
+.moment .like-btn.liked { color: var(--special_color_red); }
+.moment .like-btn.liked .icon path { fill: currentColor; }
+
+/* 评论按钮 */
+.moment .comment-btn:hover { color: var(--text_color_highlight); }
+
+/* ====================================================================
+ * 12. 动效（淡入 / 点赞弹跳）
+ * ==================================================================== */
+@keyframes moment-fade-in {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.moment-fade-in { animation: moment-fade-in 0.4s ease-out both; }
+
+@keyframes like-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.2); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.moment .like-btn.liked .icon { animation: like-pop 0.35s ease; }
+
+/* ====================================================================
+ * 13. 主题切换浮动按钮
+ * ==================================================================== */
+.theme-toggle-float {
+  position: fixed;
+  bottom: var(--spacing_xxl);
+  right: var(--spacing_xxl);
+  z-index: 100;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--border_radius_card_lg);
+  background: var(--background_color_container);
+  color: var(--text_color_primary);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  border: none;
+  cursor: pointer;
+}
+
+.theme-toggle-float.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.theme-toggle-float:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+
+:root[data-theme='dark'] .theme-toggle-float {
+  background: var(--background_color_block);
+  color: var(--text_color_primary);
+}
+
+/* ====================================================================
+ * 14. 移动端适配（≤550px）
+ * ==================================================================== */
+@media screen and (max-width: 550px) {
+  :root {
+    --avatar_size: 40px;
+    --image_max_height_single: 200px;
+  }
+
+  .page {
+    max-width: 100%;
+    min-width: 320px;
+    box-shadow: none;
+  }
+
+  /* 封面 & 签名（与 ProfileHeader 保持一致） */
+  .cover-wrap {
+    height: auto;
+    aspect-ratio: 680 / 325;
+  }
+
+  .cover-nickname { font-size: var(--font_size); }
+  .cover-avatar { width: 56px; height: 56px; }
+
+  .signature-wrap {
+    padding: var(--spacing_m);
+    padding-top: 40px;
+  }
+
+  .signature { font-size: var(--font_size_short); }
+
+  /* 图片网格 */
+  .image-grid,
+  .image-grid.grid-1,
+  .image-grid.grid-2,
+  .image-grid.grid-3,
+  .image-grid.grid-4,
+  .image-grid.grid-multiple {
+    width: 100%;
+  }
+
+  /* 媒体 */
+  .video-player { max-width: 100%; }
+  .moment .music-player { max-width: 100%; }
+
+  /* 主题按钮 */
+  .theme-toggle-float {
+    bottom: var(--spacing_l);
+    right: var(--spacing_l);
+    width: 40px;
+    height: 40px;
+  }
+
+  /* 灯箱 */
+  .lightbox-close {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .lightbox-prev,
+  .lightbox-next {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* 更小屏幕（≤480px） */
+@media screen and (max-width: 480px) {
+  .cover-nickname { font-size: var(--font_size); }
+  .cover-avatar { width: 50px; height: 50px; }
+  .signature-wrap { padding-top: 36px; }
+  .signature { font-size: var(--font_size_tall); }
+}
+
+/* ====================================================================
+ * 15. 浮动栏（主题切换 + 返回顶部）
+ * ==================================================================== */
+.float-bar {
+  position: fixed;
+  bottom: var(--spacing_xxl, 25px);
+  right: var(--spacing_xxl, 25px);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing_m, 10px);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+
+.float-bar.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.float-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--border_radius_card, 6px);
+  background: var(--background_color_container, #fff);
+  color: var(--text_color_primary, #191919);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.float-btn:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); transform: translateY(-1px); }
+.float-btn:active { transform: translateY(0); }
+
+.float-btn#themeToggle .icon-light { display: inline-block; }
+.float-btn#themeToggle .icon-dark { display: none; }
+
+:root[data-theme='dark'] .float-btn#themeToggle .icon-light { display: none; }
+:root[data-theme='dark'] .float-btn#themeToggle .icon-dark { display: inline-block; }
+
+:root[data-theme='dark'] .float-btn {
+  background: var(--background_color_block, #2c2c2c);
+  color: var(--text_color_primary, #eaeaea);
+}
+
+/* ====================================================================
+ * 16. 首页动态列表 - 查看更多按钮
+ * ==================================================================== */
+.feed { padding-bottom: var(--spacing_xxl, 25px); }
+
+.moment-hidden { display: none; }
+
+.autoload-container {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing_xxl, 25px) var(--spacing_l, 16px);
+}
+
+.autoload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border-radius: var(--border_radius_card, 4px);
+  background: var(--background_color_block, #f7f7f7);
+  color: var(--text_color_highlight, #576b95);
+  font-size: var(--font_size_short, 14px);
+  cursor: pointer;
+  border: 1px solid var(--splitline_color, #f2f2f2);
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.autoload-btn:hover { background: var(--background_color_button, #ececec); }
+.autoload-btn:active { background: var(--background_color_button, #e0e0e0); }
+
+.autoload-btn.loading { pointer-events: none; opacity: 0.7; }
+
+.autoload-btn.loading #autoloadText::after {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 8px;
+  border: 2px solid var(--text_color_tertiary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.autoload-finished {
+  color: var(--text_color_tertiary, #999);
+  font-size: var(--font_size_short, 14px);
+  text-align: center;
+}
+
+/* ====================================================================
+ * 17. 动态详情页 - 分页导航
+ * 注意：.moment .body 已有 border-bottom 作为分隔线
+ *       这里不再重复加 border-top，避免出现双线
+ * ==================================================================== */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing_xxl, 25px) 25px;
+  padding-left: calc(25px + 36px + 8px);
+  font-size: var(--font_size_short, 14px);
+}
+
+.pagination-prev,
+.pagination-next {
+  color: var(--text_color_highlight, #576b95);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.pagination-prev:hover,
+.pagination-next:hover { opacity: 0.7; }
+
+.pagination-placeholder { color: var(--text_color_tertiary, #999); }
+
+/* ====================================================================
+ * 18. 归档页
+ * ==================================================================== */
+.archive {
+  padding: var(--spacing_xxl, 25px);
+}
+
+.archive-title {
+  font-size: var(--font_size_xl, 20px);
+  color: var(--text_color_primary);
+  margin-bottom: var(--spacing_l, 16px);
+  font-weight: bold;
+}
+
+.archive-group { margin-bottom: var(--spacing_xxl, 25px); }
+
+.archive-group-title {
+  font-size: var(--font_size, 15px);
+  color: var(--text_color_highlight, #576b95);
+  margin-bottom: var(--spacing_m, 10px);
+  padding-bottom: var(--spacing_s, 8px);
+  border-bottom: 1px solid var(--splitline_color, #f2f2f2);
+}
+
+.archive-list { list-style: none; padding: 0; margin: 0; }
+
+.archive-item {
+  padding: var(--spacing_s, 8px) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed var(--splitline_color, #f2f2f2);
+}
+
+.archive-item:last-child { border-bottom: none; }
+
+.archive-item a {
+  color: var(--text_color_primary);
+  text-decoration: none;
+  flex: 1;
+  transition: color 0.2s ease;
+}
+
+.archive-item a:hover { color: var(--text_color_highlight, #576b95); }
+
+.archive-date {
+  color: var(--text_color_tertiary, #999);
+  font-size: var(--font_size_short, 14px);
+  margin-left: var(--spacing_m, 10px);
+}
+
+/* ====================================================================
+ * 19. 归档详情页
+ * ==================================================================== */
+.back-link {
+  display: inline-block;
+  padding: var(--spacing_s, 8px) var(--spacing_m, 10px);
+  color: var(--text_color_highlight, #576b95);
+  text-decoration: none;
+  font-size: var(--font_size_short, 14px);
+}
+
+.back-link:hover { opacity: 0.7; }
+
+/* ====================================================================
+ * 20. 404 页面
+ * ==================================================================== */
+.not-found {
+  padding: var(--spacing_xxxxl, 120px) var(--spacing_xxl, 25px);
+  text-align: center;
+}
+
+.not-found-code {
+  font-size: 72px;
+  font-weight: bold;
+  color: var(--text_color_highlight, #576b95);
+  margin-bottom: var(--spacing_m, 10px);
+}
+
+.not-found-text {
+  font-size: var(--font_size, 15px);
+  color: var(--text_color_secondary, #b2b2b2);
+  margin-bottom: var(--spacing_xxl, 25px);
+}
+
+.not-found-link {
+  display: inline-block;
+  padding: var(--spacing_s, 8px) var(--spacing_xxl, 25px);
+  background: var(--background_color_block, #f7f7f7);
+  color: var(--text_color_highlight, #576b95);
+  text-decoration: none;
+  border-radius: var(--border_radius_card, 4px);
+  border: 1px solid var(--splitline_color, #f2f2f2);
+  transition: background-color 0.2s ease;
+}
+
+.not-found-link:hover { background: var(--background_color_button, #ececec); }
+
+/* ====================================================================
+ * 21. 移动端：浮动栏 / 按钮 / 分页 响应式
+ * ==================================================================== */
+@media screen and (max-width: 550px) {
+  .float-bar { bottom: var(--spacing_l, 16px); right: var(--spacing_l, 16px); gap: var(--spacing_s, 8px); }
+  .float-btn { width: 40px; height: 40px; }
+  .autoload-container { padding: var(--spacing_l, 16px); }
+  .pagination { padding-left: 25px; }
+}

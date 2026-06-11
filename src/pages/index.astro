@@ -1,0 +1,56 @@
+---
+/**
+ * 首页 - 朋友圈动态列表
+ */
+import BaseLayout from '../components/BaseLayout.astro';
+import MomentItem from '../components/MomentItem.astro';
+import { siteProfile, siteMeta } from '../config.ts';
+import { getCollection } from 'astro:content';
+
+const INITIAL_PER_PAGE = 5;
+const LOAD_MORE_STEP = 5;
+
+const entries = await getCollection('moments');
+const allMoments = entries
+  .map((entry) => ({
+    id: entry.slug,
+    slug: entry.slug,
+    date: entry.data.date instanceof Date
+      ? entry.data.date.toISOString().split('T')[0]
+      : String(entry.data.date),
+    title: entry.data.title || '',
+    content: entry.body || '',
+    images: entry.data.images || [],
+    music: entry.data.music,
+    video: entry.data.video,
+    location: entry.data.location || '',
+    author: { name: siteProfile.name, avatar: siteProfile.avatar },
+  }))
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+const totalCount = allMoments.length;
+const hasMore = totalCount > INITIAL_PER_PAGE;
+---
+
+<BaseLayout title={siteMeta.siteName}>
+  <main class="feed" id="feed"
+        data-initial-count={INITIAL_PER_PAGE}
+        data-step={LOAD_MORE_STEP}
+        data-total={totalCount}>
+    {allMoments.map((moment, idx) => (
+      <div class={idx >= INITIAL_PER_PAGE ? 'moment-hidden' : ''}>
+        <MomentItem moment={moment} />
+      </div>
+    ))}
+  </main>
+
+  <div class="autoload-container" id="autoloadContainer">
+    {hasMore ? (
+      <button class="autoload-btn" id="autoloadBtn" type="button">
+        <span id="autoloadText">查看更多动态</span>
+      </button>
+    ) : (
+      <div class="autoload-finished">—— 已显示全部动态 ——</div>
+    )}
+  </div>
+</BaseLayout>

@@ -1,0 +1,42 @@
+---
+/**
+ * 图片网格组件
+ * - 根据图片数量自动调整网格布局
+ * - 图片点击打开灯箱（通过 Lightbox 组件的事件委托）
+ * - hover 轻微放大效果
+ *
+ * 结构规范：
+ *   - .image-grid .grid-1/.grid-2/.grid-3/.grid-4
+ *   - 图片用 <img data-images data-index loading="lazy">
+ */
+interface Props {
+  images: string[]
+}
+
+const { images } = Astro.props
+const count = images.length
+
+function gridClass(n: number): string {
+  if (n === 1) return 'grid-1'
+  if (n === 2) return 'grid-2'
+  if (n === 4) return 'grid-4'
+  return 'grid-3'
+}
+---
+
+<div class={`image-grid ${gridClass(count)}`}>
+  {images.map((src, i) => (
+    <img
+      src={src}
+      alt={`图片 ${i + 1}`}
+      loading="lazy"
+      data-src={src}
+      data-index={i}
+      data-images={encodeURIComponent(JSON.stringify(images))}
+    />
+  ))}
+</div>
+
+<style>
+  /* 所有样式都在 global.css 中定义，确保 API 输出的 HTML 片段有相同视觉 */
+</style>

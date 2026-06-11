@@ -1,0 +1,47 @@
+---
+/**
+ * 归档列表页
+ */
+import BaseLayout from '../components/BaseLayout.astro';
+import { siteMeta } from '../config.ts';
+import { getCollection } from 'astro:content';
+
+const entries = await getCollection('moments');
+
+const groupedMoments = entries.reduce((acc, entry) => {
+  const date = entry.data.date instanceof Date
+    ? entry.data.date
+    : new Date(entry.data.date);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const key = `${year}-${month}`;
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(entry);
+  return acc;
+}, {} as Record<string, typeof entries>);
+
+const sortedGroups = Object.entries(groupedMoments)
+  .sort((a, b) => b[0].localeCompare(a[0]))
+  .map(([key, items]) => {
+    const [year, month] = key.split('-');
+    return {
+      key,
+      year: year.slice(2),
+      month,
+      count: items.length,
+    };
+  });
+---
+
+<BaseLayout title={`归档${siteMeta.titleSeparator}${siteMeta.siteName}`}>
+  <main style="padding: var(--spacing_l);">
+    <div style="display: flex; flex-direction: column; gap: var(--spacing_s);">
+      {sortedGroups.map((group) => (
+        <a href={`/archive/${group.key}`} style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing_m) 0; font-size: var(--font_size_tall); color: var(--text_color_primary); border-bottom: 1px solid var(--splitline_color); text-decoration: none; transition: color 0.2s ease; font-variant-numeric: tabular-nums;">
+          <span>{group.year} / {group.month} / 01</span>
+          <span style="color: var(--text_color_secondary);">{group.count}</span>
+        </a>
+      ))}
+    </div>
+  </main>
+</BaseLayout>

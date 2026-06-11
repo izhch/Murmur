@@ -1,0 +1,38 @@
+---
+/**
+ * 照片墙页面
+ */
+import BaseLayout from '../components/BaseLayout.astro';
+import { siteProfile, siteMeta } from '../config.ts';
+import { getCollection } from 'astro:content';
+
+const entries = await getCollection('moments');
+
+const allPhotos = entries
+  .filter((entry) => entry.data.images && entry.data.images.length > 0)
+  .flatMap((entry) =>
+    entry.data.images!.map((url) => ({
+      url,
+      slug: entry.slug,
+    }))
+  );
+---
+
+<BaseLayout title={`照片墙${siteMeta.titleSeparator}${siteMeta.siteName}`}>
+  <main style="padding: var(--spacing_l);">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing_s); width: 100%;">
+      {allPhotos.map((photo, index) => (
+        <div style="aspect-ratio: 4 / 3; overflow: hidden; cursor: pointer; background: var(--background_color_block); border-radius: var(--border_radius_card);">
+          <img
+            src={photo.url}
+            alt={`照片 ${index + 1}`}
+            data-index={index}
+            data-images={JSON.stringify(allPhotos.map((p) => p.url))}
+            style="width: 100%; height: 100%; object-fit: cover;"
+            loading={index < 12 ? 'eager' : 'lazy'}
+          />
+        </div>
+      ))}
+    </div>
+  </main>
+</BaseLayout>

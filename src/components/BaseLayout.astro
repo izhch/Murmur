@@ -1,0 +1,102 @@
+---
+/**
+ * 基础布局组件 - 统一管理所有页面的 head、脚本、公共元素
+ * 等价于 Hugo 的 baseof.html
+ */
+import ProfileHeader from './ProfileHeader.astro';
+import FloatBar from './FloatBar.astro';
+import Lightbox from './Lightbox.astro';
+import { siteProfile, siteBackground, siteMeta } from '../config.ts';
+
+interface Props {
+  title?: string;
+  description?: string;
+  showHeader?: boolean;
+}
+
+const {
+  title = siteMeta.siteName,
+  description = siteMeta.description,
+  showHeader = true,
+} = Astro.props;
+
+const profile = siteProfile;
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+  <!-- 主题读取（防闪烁） -->
+  <script is:inline>try{var t=localStorage.getItem('wechat-moments-theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
+
+  <!-- 背景图片 -->
+  <script is:inline>
+    (function(){var b=document.body;if(b.getAttribute('data-bg-image')!=='true')return;var li=[],di=[];try{li=JSON.parse(b.getAttribute('data-bg-light')||'[]');di=JSON.parse(b.getAttribute('data-bg-dark')||'[]')}catch(e){}var op=parseFloat(b.getAttribute('data-bg-opacity')||'0.05'),bl=parseFloat(b.getAttribute('data-bg-blur')||'0');function set(u){if(!u)return;var r=document.documentElement.style;r.setProperty('--bg-image-url','url("'+u+'")');r.setProperty('--bg-image-opacity',String(op));r.setProperty('--bg-image-blur',bl+'px')}function ap(){var d=document.documentElement.getAttribute('data-theme')==='dark',p=d?di:li;if(p.length>0)set(p[Math.floor(Math.random()*p.length)])}ap();new MutationObserver(function(ms){ms.forEach(function(m){if(m.attributeName==='data-theme')ap()})}).observe(document.documentElement,{attributes:true})})();
+  </script>
+
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+
+<body
+  data-bg-image={siteBackground.enable ? 'true' : 'false'}
+  data-bg-opacity={siteBackground.opacity}
+  data-bg-blur={siteBackground.blur}
+  data-bg-light={JSON.stringify(siteBackground.lightMode)}
+  data-bg-dark={JSON.stringify(siteBackground.darkMode)}
+>
+  <div class="page">
+    {showHeader && <ProfileHeader profile={profile} />}
+    <slot />
+  </div>
+
+  <FloatBar />
+  <Lightbox />
+
+  <!-- 公共交互脚本 -->
+  <script is:inline>
+    (function(){
+      // 1. 主题切换 + 返回顶部
+      var fb=document.getElementById('floatBar');
+      var tt=document.getElementById('themeToggle');
+      var st=document.getElementById('scrollTopBtn');
+      if(tt)tt.addEventListener('click',function(){var h=document.documentElement;var d=h.getAttribute('data-theme')==='dark';if(d){h.removeAttribute('data-theme');try{localStorage.setItem('wechat-moments-theme','light')}catch(e){}}else{h.setAttribute('data-theme','dark');try{localStorage.setItem('wechat-moments-theme','dark')}catch(e){}}});
+      if(st)st.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'})});
+      function updateFB(){if(fb)window.scrollY>80?fb.classList.add('visible'):fb.classList.remove('visible')}
+      window.addEventListener('scroll',updateFB,{passive:true});updateFB();
+
+      // 2. 点赞（事件委托）
+      var LP='liked_';
+      document.addEventListener('click',function(e){var b=e.target.closest('.like-btn');if(!b)return;var id=b.getAttribute('data-moment-id');var c=parseInt(b.getAttribute('data-like-count')||'0',10);var el=b.querySelector('.count');var lk=false;try{lk=localStorage.getItem(LP+id)==='1'}catch(e){}if(lk){b.classList.remove('liked');if(el)el.textContent=c;try{localStorage.setItem(LP+id,'0')}catch(e){}}else{b.classList.add('liked');if(el)el.textContent=c+1;try{localStorage.setItem(LP+id,'1')}catch(e){}}});
+      document.querySelectorAll('.like-btn').forEach(function(b){var id=b.getAttribute('data-moment-id');var c=parseInt(b.getAttribute('data-like-count')||'0',10);var el=b.querySelector('.count');try{if(localStorage.getItem(LP+id)==='1'){b.classList.add('liked');if(el)el.textContent=c+1}}catch(e){}});
+
+      // 3. 全文/收起
+      document.addEventListener('click',function(e){var b=e.target.closest('.more-link');if(!b)return;var a=b.closest('.more-area');if(a)a.classList.toggle('expanded')});
+
+      // 4. 主色调提取（音乐播放器渐变背景）
+      function ext(img){try{var cv=document.createElement('canvas');var cx=cv.getContext('2d');cv.width=cv.height=50;cx.drawImage(img,0,0,50,50);var d=cx.getImageData(0,0,50,50).data;var r=0,g=0,b=0,n=0;for(var i=0;i<d.length;i+=4)if(d[i+3]>128){r+=d[i];g+=d[i+1];b+=d[i+2];n++}if(n>0)return Math.floor(r/n)+', '+Math.floor(g/n)+', '+Math.floor(b/n)}catch(e){}return null}
+      function apG(el,c){if(el&&c)el.style.background='linear-gradient(to right,rgb('+c+') 0%,rgba('+c+',0) 100%)'}
+      var sc=null;var cov=document.querySelector('.cover');
+      if(cov){function ic(){sc=ext(cov);apAll()}if(cov.complete&&cov.naturalWidth>0)ic();else{cov.addEventListener('load',ic,{once:true});cov.addEventListener('error',ic,{once:true})}}
+      function apAll(){if(!sc)return;document.querySelectorAll('.music-player').forEach(function(p){var g=p.querySelector('.music-info-gradient');var c=p.querySelector('.music-cover-img');if(c&&c.complete&&c.naturalWidth>0){var col=ext(c);apG(g,col||sc)}else apG(g,sc)})}
+      function initMP(root){(root||document).querySelectorAll('.music-player').forEach(function(p){var c=p.querySelector('.music-cover-img');var g=p.querySelector('.music-info-gradient');if(!g)return;if(c){if(c.complete&&c.naturalWidth>0){var col=ext(c);apG(g,col||sc)}else{c.addEventListener('load',function(){var col=ext(c);apG(g,col||sc)},{once:true});c.addEventListener('error',function(){if(sc)apG(g,sc)},{once:true})}}else if(sc)apG(g,sc)})}
+      initMP(document);
+
+      // 5. 音乐播放/暂停
+      var ca=null;var cp=null;
+      document.addEventListener('click',function(e){var b=e.target.closest('.music-play-btn');if(!b)return;var p=b.closest('.music-player');if(!p)return;var a=p.querySelector('audio');if(!a)return;if(ca&&ca!==a){ca.pause();ca.currentTime=0;if(cp)cp.classList.remove('playing')}if(a.paused){a.play();b.classList.add('playing');ca=a;cp=b}else{a.pause();a.currentTime=0;b.classList.remove('playing');ca=null;cp=null}});
+      document.addEventListener('ended',function(e){if(e.target.tagName&&e.target.tagName.toLowerCase()==='audio'){if(cp)cp.classList.remove('playing');ca=null;cp=null}},true);
+
+      // 6. 查看更多按钮
+      var fd=document.getElementById('feed');var ab=document.getElementById('autoloadBtn');var at=document.getElementById('autoloadText');var ac=document.getElementById('autoloadContainer');
+      if(fd&&ab){var step=parseInt(fd.getAttribute('data-step')||'5',10);ab.addEventListener('click',function(){var hi=fd.querySelectorAll('.moment-hidden');if(!hi||hi.length===0){fin();return}ab.classList.add('loading');if(at)at.textContent='加载中';var sh=[];for(var i=0;i<step&&i<hi.length;i++)sh.push(hi[i]);sh.forEach(function(el,idx){el.classList.remove('moment-hidden');var inr=el.querySelector('.moment');if(inr){inr.classList.add('moment-fade-in');inr.style.animationDelay=(idx*0.04)+'s'}});sh.forEach(function(el){initMP(el)});ab.classList.remove('loading');var rm=fd.querySelectorAll('.moment-hidden').length;if(rm===0)fin();else if(at)at.textContent='查看更多动态（还剩 '+rm+' 条）'})}
+      function fin(){if(!ac)return;while(ac.firstChild)ac.removeChild(ac.firstChild);var d=document.createElement('div');d.className='autoload-finished';d.textContent='—— 已显示全部动态 ——';ac.appendChild(d)}
+    })();
+  </script>
+</body>
+</html>

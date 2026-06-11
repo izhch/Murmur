@@ -1,0 +1,20 @@
+---
+/**
+ * 404 页面
+ */
+import BaseLayout from '../components/BaseLayout.astro';
+import { siteMeta } from '../config.ts';
+---
+
+<BaseLayout title={`404${siteMeta.titleSeparator}${siteMeta.siteName}`}>
+  <main style="padding: var(--spacing_xxxl, 120px) var(--spacing_xxl, 25px); text-align: center;">
+    <div style="color: var(--text_color_highlight, #576b95); margin-bottom: var(--spacing_m, 10px);">
+      <svg viewBox="0 0 24 24" width="64" height="64" fill="currentColor" aria-hidden="true">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+      </svg>
+    </div>
+    <h1 style="font-size: 48px; font-weight: 700; color: var(--text_color_primary); margin: 0 0 8px;">404</h1>
+    <p style="font-size: var(--font_size, 16px); color: var(--text_color_secondary, #b2b2b2); margin: 0 0 32px;">页面未找到</p>
+    <a href="/" style="display: inline-block; padding: var(--spacing_xs, 4px) var(--spacing_xxl, 25px); background: var(--background_color_block, #f7f7f7); color: var(--text_color_highlight, #576b95); text-decoration: none; border-radius: var(--border_radius_card, 4px); border: 1px solid var(--splitline_color, #f2f2f2); transition: background-color 0.2s ease;">返回首页</a>
+  </main>
+</BaseLayout>

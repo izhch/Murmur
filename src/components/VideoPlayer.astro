@@ -1,0 +1,26 @@
+---
+interface Props {
+  url: string
+  cover?: string
+}
+
+const { url, cover } = Astro.props
+---
+
+<div class="video-player">
+  <video class="video-element" poster={cover} controls preload="metadata" playsinline>
+    <source src={url} type="video/mp4" />
+    您的浏览器不支持视频播放。
+  </video>
+</div>
+
+<style>
+  .video-player { margin-top: var(--spacing_s); border-radius: var(--border_radius_card); overflow: hidden; max-width: 280px; background: var(--background_color_block); }
+  .video-element { width: 100%; display: block; background: #000; }
+
+  :root[data-theme='dark'] .video-element { background: #111; }
+
+  @media screen and (max-width: 550px) {
+    .video-player { max-width: 100%; }
+  }
+</style>

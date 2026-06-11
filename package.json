@@ -1,0 +1,20 @@
+{
+  "name": "murmur",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Murmur - 微信朋友圈风格个人动态主题",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^6.4.4",
+    "tailwindcss": "^4.3.0"
+  }
+}

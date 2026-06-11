@@ -1,0 +1,15 @@
+---
+/**
+ * 关于页面
+ */
+import BaseLayout from '../components/BaseLayout.astro';
+import { siteProfile, siteMeta } from '../config.ts';
+---
+
+<BaseLayout title={`关于${siteProfile.name}${siteMeta.titleSeparator}${siteMeta.siteName}`}>
+  <main style="padding: var(--spacing_xxl) var(--spacing_l); text-align: center; color: var(--text_color_primary); font-size: var(--font_size); line-height: 1.8;">
+    <p>年轻的时候，爱上什么都不为过</p>
+    <p>成熟了以后，放弃什么都能理解</p>
+    <p>但愿，一切美好都如期而至。</p>
+  </main>
+</BaseLayout>
