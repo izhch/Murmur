@@ -7,6 +7,7 @@ import ProfileHeader from './ProfileHeader.astro';
 import FloatBar from './FloatBar.astro';
 import Lightbox from './Lightbox.astro';
 import { siteProfile, siteBackground, siteMeta } from '../config.ts';
+import '../styles/global.css';
 
 interface Props {
   title?: string;
@@ -39,8 +40,6 @@ const profile = siteProfile;
   <script is:inline>
     (function(){var b=document.body;if(b.getAttribute('data-bg-image')!=='true')return;var li=[],di=[];try{li=JSON.parse(b.getAttribute('data-bg-light')||'[]');di=JSON.parse(b.getAttribute('data-bg-dark')||'[]')}catch(e){}var op=parseFloat(b.getAttribute('data-bg-opacity')||'0.05'),bl=parseFloat(b.getAttribute('data-bg-blur')||'0');function set(u){if(!u)return;var r=document.documentElement.style;r.setProperty('--bg-image-url','url("'+u+'")');r.setProperty('--bg-image-opacity',String(op));r.setProperty('--bg-image-blur',bl+'px')}function ap(){var d=document.documentElement.getAttribute('data-theme')==='dark',p=d?di:li;if(p.length>0)set(p[Math.floor(Math.random()*p.length)])}ap();new MutationObserver(function(ms){ms.forEach(function(m){if(m.attributeName==='data-theme')ap()})}).observe(document.documentElement,{attributes:true})})();
   </script>
-
-  <link rel="stylesheet" href="/src/styles/global.css">
 </head>
 
 <body
