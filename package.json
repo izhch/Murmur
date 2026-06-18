@@ -10,11 +10,20 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "lint": "eslint src --ext .ts,.astro,.js",
+    "lint:fix": "eslint src --ext .ts,.astro,.js --fix",
+    "format": "prettier --write \"src/**/*.{ts,astro,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,astro,css,md}\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^6.4.4",
     "tailwindcss": "^4.3.0"
-  }
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-plugin-astro": "^1.0.0",
+    "prettier": "^3.0.0"
+  },
+  "astro": "astro"
 }

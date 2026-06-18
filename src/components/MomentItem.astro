@@ -1,104 +1,87 @@
 ---
-/**
- * 朋友圈动态卡片组件
- * 精简版：样式统一移到 global.css，脚本通过事件委托处理
- */
 import ImageGrid from './ImageGrid.astro';
 import MusicPlayer from './MusicPlayer.astro';
 import VideoPlayer from './VideoPlayer.astro';
-import TextExpand from './TextExpand.astro';
-import { formatRelativeTime, generateFixedRandom } from '../utils';
-
-interface Moment {
-  id: string;
-  slug?: string;
-  date: string;
-  title?: string;
-  content: string;
-  images?: string[];
-  music?: { title: string; artist: string; cover: string; url: string };
-  video?: { url: string; cover: string };
-  location?: string;
-  author: { name: string; avatar: string };
-}
+import { formatRelativeTime } from '../utils';
 
 interface Props {
-  moment: Moment;
+  moment: {
+    id: string;
+    date: string;
+    content: string;
+    Content?: any;
+    images?: string[];
+    music?: { title: string; artist: string; url: string; cover?: string };
+    video?: { url: string; cover?: string };
+    location?: string;
+    author: { name: string; avatar: string };
+  };
 }
 
-const { moment } = Astro.props;
-const seed = moment.id || moment.slug || moment.date;
-const formattedDate = formatRelativeTime(moment.date);
-const likeCount = generateFixedRandom(seed, 1, 50);
-const commentCount = generateFixedRandom(seed + 'comment', 0, 20);
+const { moment, class: className = '' } = Astro.props;
+const ContentComponent = moment.Content;
+
+// 计算纯文本长度（用于判断是否需要折叠）
+const plainText = (moment.content || '').replace(/<[^>]*>/g, '').replace(/\s/g, '');
+const needsFold = plainText.length > 200;
+
+// 提取纯文本预览（去掉 HTML 标签和 Markdown 标记，只保留文字）
+function extractPlainTextPreview(raw: string, maxLen: number): string {
+  const text = raw
+    .replace(/<[^>]*>/g, '')
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/>\s?/g, '')
+    .replace(/[-*+]\s/g, '')
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    .replace(/---+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text.length <= maxLen) return text;
+  return text.slice(0, maxLen);
+}
+
+const previewText = needsFold ? extractPlainTextPreview(moment.content, 200) : '';
 ---
 
-<article class="moment" data-moment-id={seed} data-date={moment.date}>
-  <div class="avatar-container">
-    <img
-      class="avatar"
-      src={moment.author.avatar}
-      alt={moment.author.name}
-      width="36"
-      height="36"
-      loading="lazy"
-    />
+<article class={className} data-moment-id={moment.id}>
+  <div class="post-avatar">
+    <img src={moment.author.avatar} loading="lazy" draggable="false" alt="" />
   </div>
-
-  <div class="body">
-    <span class="author">{moment.author.name}</span>
-
-    {moment.content && (
-      <p class="content">
-        <TextExpand content={moment.content} />
-      </p>
-    )}
-
-    {moment.images && moment.images.length > 0 && (
-      <ImageGrid images={moment.images} />
-    )}
-
+  <div class="post-main">
+    <header class="post-header">
+      <div class="post-title">{moment.author.name}</div>
+    </header>
+    <section class="post-content">
+      {needsFold ? (
+        <span class="more-area">
+          <span class="more-preview">{previewText}</span>
+          <span class="more-content">
+            {ContentComponent ? <ContentComponent /> : <Fragment set:html={moment.content} />}
+          </span>
+          <span class="more-ellipsis">...</span>
+          <span class="more-btn more">展开</span>
+          <span class="more-btn less">收起</span>
+        </span>
+      ) : (
+        ContentComponent ? <ContentComponent /> : <Fragment set:html={moment.content} />
+      )}
+    </section>
+    {moment.images && moment.images.length > 0 && <ImageGrid images={moment.images} />}
     {moment.music && <MusicPlayer {...moment.music} />}
-
-    {moment.video && <VideoPlayer url={moment.video.url} cover={moment.video.cover} />}
-
-    <div class="meta">
-      <span class="time">
-        {formattedDate}
-        {moment.location && <span class="location"> · {moment.location}</span>}
-      </span>
-
-      <div class="actions">
-        <button
-          class="action-btn like-btn"
-          type="button"
-          aria-label="点赞"
-          data-like-count={likeCount}
-          data-moment-id={seed}
-        >
-          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-          </svg>
-          <span class="count">{likeCount}</span>
-        </button>
-
-        <button
-          class="action-btn comment-btn"
-          type="button"
-          aria-label="评论"
-          data-comment-count={commentCount}
-        >
-          <svg class="icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-          </svg>
-          <span class="count">{commentCount}</span>
-        </button>
+    {moment.video && <VideoPlayer {...moment.video} />}
+    <footer class="post-footer">
+      <div class="post-info">
+        <span>{formatRelativeTime(moment.date)}</span>
+        {moment.location && <span class="post-location">{moment.location}</span>}
       </div>
-    </div>
+      <div class="post-fun">
+        <div class="fun-ico"></div>
+        <div class="fun-box"><div class="fun-btn like allow">赞</div><div class="fun-btn comment allow">评论</div></div>
+      </div>
+    </footer>
   </div>
 </article>
-
-<style>
-  /* 此组件不再定义样式，全部样式在 global.css
-     这样 API 返回的 HTML 片段也能获得相同的视觉效果 */
-</style>

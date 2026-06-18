@@ -1,0 +1,16 @@
+{
+  "name": "向晚的朋友圈",
+  "short_name": "向晚",
+  "description": "一块属于自己的自留地 | 孤久则安",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -1,57 +1,58 @@
 ---
-/**
- * 首页 - 朋友圈动态列表
- */
 import BaseLayout from '../components/BaseLayout.astro';
+import ProfileHeader from '../components/ProfileHeader.astro';
+import Lightbox from '../components/Lightbox.astro';
 import MomentItem from '../components/MomentItem.astro';
-import { siteProfile, siteMeta } from '../config.ts';
-import { getCollection } from 'astro:content';
+import { siteMeta, siteProfile } from '../config.ts';
+import { getCollection, render } from 'astro:content';
+import { formatDate } from '../utils.ts';
 
 const INITIAL_PER_PAGE = 5;
 const LOAD_MORE_STEP = 5;
 
 const entries = await getCollection('moments');
-const allMoments = entries
-  .filter((entry) => !entry.data.draft)
-  .map((entry) => ({
-    id: entry.slug,
-    slug: entry.slug,
-    date: entry.data.date instanceof Date
-      ? entry.data.date.toISOString().split('T')[0]
-      : String(entry.data.date),
-    title: entry.data.title || '',
+const publishedEntries = entries.filter((entry) => !entry.data.draft);
+
+const sortedEntries = publishedEntries.sort((a, b) => {
+  return new Date(b.data.date).getTime() - new Date(a.data.date).getTime();
+});
+
+const allMoments = await Promise.all(sortedEntries.map(async (entry) => {
+  const { Content } = await render(entry);
+
+  return {
+    id: entry.id,
+    date: formatDate(entry.data.date),
     content: entry.body || '',
+    Content: Content,
     images: entry.data.images || [],
     music: entry.data.music,
     video: entry.data.video,
     location: entry.data.location || '',
     author: { name: siteProfile.name, avatar: siteProfile.avatar },
-  }))
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+}));
 
 const totalCount = allMoments.length;
 const hasMore = totalCount > INITIAL_PER_PAGE;
 ---
 
 <BaseLayout title={siteMeta.siteName}>
-  <main class="feed" id="feed"
-        data-initial-count={INITIAL_PER_PAGE}
-        data-step={LOAD_MORE_STEP}
-        data-total={totalCount}>
+  <ProfileHeader />
+
+  <main id="posts" data-step={LOAD_MORE_STEP} data-total={totalCount}>
     {allMoments.map((moment, idx) => (
-      <div class={idx >= INITIAL_PER_PAGE ? 'moment-hidden' : ''}>
-        <MomentItem moment={moment} />
-      </div>
+      <MomentItem moment={moment} class={idx >= INITIAL_PER_PAGE ? 'moment-hidden' : ''} />
     ))}
   </main>
 
-  <div class="autoload-container" id="autoloadContainer">
+  <footer id="navigation">
     {hasMore ? (
-      <button class="autoload-btn" id="autoloadBtn" type="button">
-        <span id="autoloadText">查看更多动态</span>
-      </button>
+      <div id="autoload">加载更多</div>
     ) : (
-      <div class="autoload-finished">—— 已显示全部动态 ——</div>
+      <div id="autoload" style="cursor: default;">—— 已加载全部动态 ——</div>
     )}
-  </div>
+  </footer>
+
+  <Lightbox />
 </BaseLayout>

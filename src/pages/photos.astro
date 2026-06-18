@@ -1,9 +1,8 @@
 ---
-/**
- * 照片墙页面
- */
 import BaseLayout from '../components/BaseLayout.astro';
-import { siteProfile, siteMeta } from '../config.ts';
+import ProfileHeader from '../components/ProfileHeader.astro';
+import Lightbox from '../components/Lightbox.astro';
+import { siteMeta } from '../config.ts';
 import { getCollection } from 'astro:content';
 
 const entries = await getCollection('moments');
@@ -12,28 +11,68 @@ const publishedEntries = entries.filter((entry) => !entry.data.draft);
 const allPhotos = publishedEntries
   .filter((entry) => entry.data.images && entry.data.images.length > 0)
   .flatMap((entry) =>
-    entry.data.images!.map((url) => ({
-      url,
-      slug: entry.slug,
-    }))
+    entry.data.images!.map((url) => ({ url, slug: entry.id }))
   );
+
+const totalCount = allPhotos.length;
+const INITIAL_COUNT = 9;
+const LOAD_MORE_STEP = 9;
+const hasMore = totalCount > INITIAL_COUNT;
 ---
 
 <BaseLayout title={`照片墙${siteMeta.titleSeparator}${siteMeta.siteName}`}>
-  <main style="padding: var(--spacing_l);">
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing_s); width: 100%;">
+  <ProfileHeader />
+  <main id="photoWall" data-initial-count={INITIAL_COUNT} data-step={LOAD_MORE_STEP} data-total={totalCount}>
+    <div class="photo-grid">
       {allPhotos.map((photo, index) => (
-        <div style="aspect-ratio: 4 / 3; overflow: hidden; cursor: pointer; background: var(--background_color_block); border-radius: var(--border_radius_card);">
+        <div class:list={["photo-item", index >= INITIAL_COUNT ? "photo-hidden" : ""]}>
           <img
             src={photo.url}
             alt={`照片 ${index + 1}`}
             data-index={index}
-            data-images={JSON.stringify(allPhotos.map((p) => p.url))}
-            style="width: 100%; height: 100%; object-fit: cover;"
-            loading={index < 12 ? 'eager' : 'lazy'}
+            loading={index < 12 ? "eager" : "lazy"}
           />
         </div>
       ))}
     </div>
   </main>
+
+  <div id="photoLoadMoreContainer">
+    {hasMore ? (
+      <button id="photoLoadMoreBtn" type="button">
+        <span id="photoLoadMoreText">加载更多</span>
+      </button>
+    ) : (
+      <div class="photo-all-loaded">—— 已显示全部图片 ——</div>
+    )}
+  </div>
+
+  <Lightbox />
+
+  <script is:inline>
+    (function() {
+      var photoWall = document.getElementById('photoWall');
+      var loadMoreBtn = document.getElementById('photoLoadMoreBtn');
+      var loadMoreText = document.getElementById('photoLoadMoreText');
+      if (!photoWall || !loadMoreBtn) return;
+
+      var step = parseInt(photoWall.getAttribute('data-step') || '9', 10);
+      var total = parseInt(photoWall.getAttribute('data-total') || '0', 10);
+
+      loadMoreBtn.addEventListener('click', function() {
+        var hiddenItems = photoWall.querySelectorAll('.photo-hidden');
+        for (var i = 0; i < step && i < hiddenItems.length; i++) {
+          hiddenItems[i].classList.remove('photo-hidden');
+        }
+        var remaining = photoWall.querySelectorAll('.photo-hidden').length;
+        if (remaining === 0) {
+          loadMoreBtn.style.display = 'none';
+          var container = document.getElementById('photoLoadMoreContainer');
+          if (container) {
+            container.innerHTML = '<div class="photo-all-loaded">—— 已显示全部图片 ——</div>';
+          }
+        }
+      });
+    })();
+  </script>
 </BaseLayout>

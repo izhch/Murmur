@@ -1,0 +1,9 @@
+{
+  "extends": ["astro"],
+  "rules": {
+    "no-unused-vars": "warn",
+    "prefer-const": "error",
+    "no-console": "off"
+  },
+  "ignorePatterns": ["dist", "node_modules", ".astro"]
+}

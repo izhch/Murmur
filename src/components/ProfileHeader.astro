@@ -1,114 +1,33 @@
 ---
-/**
- * 个人资料头部：封面、头像、昵称、签名、菜单
- */
-import { siteProfile, siteMeta, menuItems } from '../config.ts';
+import { siteProfile, siteMeta } from '../config.ts';
 
 interface Props {
-  profile?: { name: string; avatar: string; cover: string; signature: string };
+  profile?: typeof siteProfile;
 }
 
 const { profile = siteProfile } = Astro.props;
+const hasCover = !!profile.cover;
 ---
 
-<header class="profile-header">
-  <div class="cover-wrap">
-    <img class="cover" src={profile.cover} alt="封面" />
-
-    <button class="menu-btn" id="menuBtn" aria-label="菜单">
-      <span class="menu-line"></span>
-      <span class="menu-line"></span>
-      <span class="menu-line"></span>
-    </button>
-
-    <a href="/" class="cover-profile">
-      <span class="cover-nickname">{siteMeta.siteName}</span>
-      <img class="cover-avatar" src={profile.avatar} alt={profile.name} />
-    </a>
-
-    <div class="menu-dropdown" id="menuDropdown">
-      <button class="menu-close" id="menuClose" aria-label="关闭菜单">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-        </svg>
-      </button>
-
-      <div class="menu-content">
-        {menuItems.map((item) => (
-          <a href={item.href} class="menu-item">{item.label}</a>
-        ))}
-      </div>
-
-      <div class="menu-footer">
-        <button class="social-btn" aria-label="Instagram">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-6.78-2.618-6.98-6.98-.058-1.281-.073-1.689-.073-4.948 0-3.259.014-3.668.072-4.948.2-4.358 2.618-6.78 6.98-6.98 1.281.058 1.689.072 4.948.072zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-          </svg>
-        </button>
-        <button class="social-btn" aria-label="Email">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-          </svg>
-        </button>
-      </div>
+<header id="banner">
+  <div id="banner-background" class={hasCover ? 'existbg' : ''} style={hasCover ? `--banner_background_image: url('${profile.cover}'); --banner_background_image_dark: url('${profile.coverDark || profile.cover}'); --banner_background_image_position: 50%;` : ''}></div>
+  <div id="bar">
+    <ul class="bar-op">
+      <li class="user" title="菜单">菜单</li>
+    </ul>
+  </div>
+  <div id="bar-dropdown">
+    <div class="menu-close" data-action="close-menu" title="关闭"></div>
+    <a href="/about/"><span class="menu-icon about"></span>关于</a>
+    <a href="/photos/"><span class="menu-icon photos"></span>照片墙</a>
+  </div>
+  <div id="banner-info">
+    <div class="name">
+      <strong onclick="window.location.href='/'">{siteMeta.siteName}</strong>
+    </div>
+    <div class="avatar">
+      <img src={profile.avatar} loading="lazy" draggable="false" alt="" />
     </div>
   </div>
-
-  <div class="signature-wrap">
-    <p class="signature">{profile.signature}</p>
-  </div>
+  <div id="banner-subinfo">{profile.signature}</div>
 </header>
-
-<script is:inline>
-(function () {
-  var menuBtn = document.getElementById('menuBtn');
-  var menuDropdown = document.getElementById('menuDropdown');
-  var menuClose = document.getElementById('menuClose');
-  if (!menuBtn || !menuDropdown) return;
-  menuBtn.addEventListener('click', function (e) { e.stopPropagation(); menuDropdown.classList.add('open'); });
-  if (menuClose) menuClose.addEventListener('click', function (e) { e.stopPropagation(); menuDropdown.classList.remove('open'); });
-  document.addEventListener('click', function (e) { if (!menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) menuDropdown.classList.remove('open'); });
-})();
-</script>
-
-<style>
-  .profile-header { position: relative; background: var(--background_color_container); max-width: var(--page_max_width_container); margin: 0 auto; }
-
-  .cover-wrap { position: relative; width: 100%; height: var(--cover_height); overflow: visible; background: var(--background_color_block); }
-  .cover { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-  .menu-btn { position: absolute; top: var(--spacing_l); right: var(--spacing_l); z-index: 100; width: 32px; height: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: var(--spacing_xs); background: transparent; border: none; cursor: pointer; }
-  .menu-line { display: block; width: 20px; height: 2px; background: var(--text_color_reversal); border-radius: 1px; }
-
-  .cover-profile { position: absolute; right: var(--spacing_l); bottom: -20px; display: flex; flex-direction: row; align-items: flex-end; gap: var(--spacing_m); z-index: 50; width: auto; flex-wrap: nowrap; }
-  .cover-nickname { font-size: var(--cover_nickname_size); font-weight: 600; color: var(--text_color_reversal); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); padding-bottom: var(--cover_nickname_bottom_padding); white-space: nowrap; }
-  .cover-avatar { width: var(--cover_avatar_size); height: var(--cover_avatar_size); border-radius: var(--cover_avatar_radius); object-fit: cover; border: 2px solid var(--text_color_reversal); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); display: block; }
-
-  .menu-dropdown { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--background_color_container); z-index: 200; opacity: 0; visibility: hidden; transform: translateY(-100%); transition: all 0.3s ease; display: flex; flex-direction: column; }
-  .menu-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
-  .menu-close { position: absolute; top: var(--spacing_l); right: var(--spacing_l); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text_color_tertiary); }
-  .menu-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing_xxl); padding-top: 40px; }
-  .menu-item { font-size: var(--font_size_grande); color: var(--text_color_primary); text-decoration: none; transition: opacity 0.2s; }
-  .menu-item:hover { opacity: 0.7; }
-  .menu-footer { display: flex; justify-content: center; gap: var(--spacing_xxl); padding: var(--spacing_xxl); border-top: 1px solid var(--splitline_color); }
-  .social-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text_color_tertiary); transition: color 0.2s; }
-  .social-btn:hover { color: var(--text_color_highlight); }
-
-  .signature-wrap { padding: var(--spacing_l); text-align: right; padding-top: var(--signature_top_padding); }
-  .signature { font-size: var(--signature_font_size); color: var(--signature_color); margin: 0; line-height: 1.5; }
-
-  @media screen and (max-width: 680px) {
-    .cover-wrap { height: auto; aspect-ratio: 680 / 325; }
-    .cover-nickname { font-size: var(--font_size); }
-    .cover-avatar { width: 56px; height: 56px; }
-    .signature-wrap { padding: var(--spacing_m); padding-top: 28px; }
-    .signature { font-size: var(--font_size_short); }
-  }
-
-  @media screen and (max-width: 480px) {
-    .cover-nickname { font-size: var(--font_size); }
-    .cover-avatar { width: 50px; height: 50px; }
-    .signature-wrap { padding-top: 24px; }
-    .signature { font-size: var(--font_size_tall); }
-  }
-</style>
