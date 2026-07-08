@@ -1,0 +1,54 @@
+---
+// 引入个人资料类型定义
+import type { Profile } from '../types';
+
+// 定义封面横幅组件属性
+interface Props {
+  // 用户资料：昵称、签名、头像、封面图等
+  profile: Profile;
+}
+
+// 从 props 中解构出 profile 对象
+const { profile } = Astro.props;
+---
+
+<!-- 封面区：相对定位，作为头像、昵称、签名的定位上下文 -->
+<section class="relative w-full">
+  <!-- 封面图：高度自适应，小屏幕更矮 -->
+  <div class="relative h-[200px] w-full overflow-hidden bg-[#191919] sm:h-[260px] md:h-[325px]">
+    <img
+      src={profile.cover}
+      alt={`${profile.nickname} 的封面`}
+      class="cover-img h-full w-full object-cover"
+      data-cover-light={profile.cover}
+      data-cover-dark={profile.coverDark || profile.cover}
+      loading="eager"
+    />
+  </div>
+
+  <!-- 头像：右下角，向下溢出，小屏幕尺寸小一些 -->
+  <div class="absolute -bottom-[8px] right-[20px] z-20 h-[48px] w-[48px] rounded-[7px] bg-white dark:bg-moments-dark-card sm:-bottom-[10px] sm:right-[25px] sm:h-[54px] sm:w-[54px] md:-bottom-[12px] md:h-[60px] md:w-[60px]">
+    <img
+      src={profile.avatar}
+      alt={profile.nickname}
+      class="h-full w-full rounded-[7px] object-cover"
+      loading="eager"
+    />
+  </div>
+
+  <!-- 昵称：头像左侧，底部距封面底边，小屏幕调整，点击跳转到主页 -->
+  <div class="absolute bottom-[8px] right-[76px] z-10 sm:bottom-[10px] sm:right-[89px] md:right-[95px]">
+    <a href="/">
+      <h1 class="text-[16px] font-bold leading-[22px] text-white sm:text-[17px] md:text-[18px] md:leading-[26px]">
+        {profile.siteName}
+      </h1>
+    </a>
+  </div>
+
+  <!-- 个性签名：白色内容区，右对齐，小屏幕调整 -->
+  <div class="absolute -bottom-[36px] right-[20px] z-10 max-w-[200px] text-right sm:-bottom-[40px] sm:right-[25px] sm:max-w-[260px] md:-bottom-[44px] md:max-w-[333px]">
+    <p class="text-[13px] leading-[20px] text-moments-sub dark:text-moments-dark-sub sm:text-[14px] sm:leading-[22px]">
+      {profile.signature}
+    </p>
+  </div>
+</section>

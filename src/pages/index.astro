@@ -1,0 +1,52 @@
+---
+// 主页：展示朋友圈动态列表，支持无限滚动加载
+
+// 引入布局、组件与工具函数
+import Layout from '../layouts/Layout.astro';
+import CoverBanner from '../components/CoverBanner.astro';
+import MomentCard from '../components/MomentCard.astro';
+import { profile, PAGE_SIZE } from '../config';
+import { parseMoments } from '../utils';
+import type { BlogModule } from '../types';
+
+// 从 src/content/*.md 读取文章，直接作为主页动态内容
+const blogPosts = import.meta.glob('../content/*.md', { eager: true }) as Record<string, BlogModule>;
+const moments = parseMoments(blogPosts, profile);
+
+// 是否还有更多内容
+const hasMore = moments.length > PAGE_SIZE;
+---
+
+<Layout profile={profile}>
+  <!-- 封面横幅 -->
+  <CoverBanner profile={profile} />
+
+  <!-- 动态列表容器：绑定分页参数供前端无限滚动使用 -->
+  <main
+    class="pt-[32px] sm:pt-[36px] md:pt-[40px]"
+    id="moments-container"
+    data-page-size={PAGE_SIZE}
+    data-total={moments.length}
+  >
+    {moments.map((moment, i) => (
+      <!-- 超出首屏的动态初始隐藏，滚动后逐步显示 -->
+      <div class={i >= PAGE_SIZE ? 'moment-hidden hidden' : ''}>
+        <MomentCard moment={moment} isLast={i === moments.length - 1} />
+      </div>
+    ))}
+
+    {hasMore && (
+      <!-- 加载更多提示：呼吸动画文字 -->
+      <div class="loading-indicator py-6 text-center">
+        <span class="loading-breath text-[14px] text-moments-sub dark:text-moments-dark-sub">正在加载...</span>
+      </div>
+    )}
+
+    {!hasMore && (
+      <!-- 无更多内容提示 -->
+      <div class="py-6 text-center text-[12px] text-moments-sub dark:text-moments-dark-sub">
+        <span>—— 没有更多了 ——</span>
+      </div>
+    )}
+  </main>
+</Layout>

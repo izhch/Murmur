@@ -1,0 +1,113 @@
+/* 引入 Tailwind CSS v4 */
+@import "tailwindcss";
+
+/* Tailwind v4 暗色模式：基于 html.darkmode 类切换 */
+@custom-variant dark (&:where(.darkmode, .darkmode *));
+
+/* Tailwind v4 设计令牌 —— 朋友圈主题色板与字体 */
+@theme {
+  /* 朋友圈主题色（亮色模式） */
+  --color-moments-bg: #f0f0f0;           /* 页面背景灰 */
+  --color-moments-card: #ffffff;         /* 卡片白 / 容器白 */
+  --color-moments-text: #191919;         /* 主文字 */
+  --color-moments-sub: #b2b2b2;          /* 次级文字/时间/位置 */
+  --color-moments-link: #576b95;         /* 昵称/链接蓝 */
+  --color-moments-like: #f04848;         /* 点赞红 */
+  --color-moments-divider: #ececec;      /* 分割线 */
+  --color-moments-menu: #4b5153;         /* 菜单气泡背景 */
+  --color-moments-aside: #f7f7f7;        /* 点赞评论栏背景 */
+
+  /* 暗色模式配色 */
+  --color-moments-dark-bg: #1a1a1a;           /* 页面背景 */
+  --color-moments-dark-card: #2c2c2c;         /* 容器/卡片背景 */
+  --color-moments-dark-text: #eaeaea;         /* 主文字 */
+  --color-moments-dark-sub: #6c6c6c;          /* 次级文字/时间/位置 */
+  --color-moments-dark-link: #7d90a9;         /* 昵称/链接蓝 */
+  --color-moments-dark-divider: #3a3a3a;      /* 分割线 */
+  --color-moments-dark-menu: #606060;         /* 菜单气泡背景 */
+  --color-moments-dark-aside: #363636;        /* 点赞评论栏背景 */
+
+  /* 系统字体栈，贴近微信原生 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC",
+    "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* 全局重置 —— 使用 Tailwind base layer */
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-moments-bg);
+    color: var(--color-moments-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 16px;
+    line-height: 1.5;
+    font-weight: 500; /* 全局字重提升到 500，使 Windows 下字体看起来更粗 */
+  }
+
+  /* 暗色模式：背景与文字色反转 */
+  html.darkmode,
+  html.darkmode body {
+    background: var(--color-moments-dark-bg);
+    color: var(--color-moments-dark-text);
+  }
+}
+
+/* 隐藏滚动条但保留滚动能力 */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* 加载文字呼吸动画：透明度在 1 与 0.4 之间循环 */
+@keyframes loading-breath {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.loading-breath {
+  animation: loading-breath 1.6s ease-in-out infinite;
+}
+
+/* 浮动按钮显示/隐藏动画 */
+#misc.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 密码保护：内容隐藏 */
+.moment-content-hidden {
+  display: none;
+}
+
+/* 密码验证成功：表单滑出 */
+.password-form.unlocking {
+  opacity: 0;
+  transform: translateY(-10px);
+  max-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
+}
+
+/* 密码验证成功：内容展开 */
+.moment-content-wrapper.unlocking {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: all 0.35s ease-out;
+}
+
+.moment-content-wrapper.unlocking.shown {
+  opacity: 1;
+  transform: translateY(0);
+}

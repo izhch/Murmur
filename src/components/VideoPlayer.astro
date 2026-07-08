@@ -1,0 +1,38 @@
+---
+// 视频播放器组件：小尺寸，自动截取首帧作为封面
+// 宽度约 66%，左侧对齐，视频加载后自动显示首帧
+// 交互逻辑在 /scripts/moments.js 中
+
+// 定义视频播放器属性
+interface Props {
+  // 视频文件地址
+  src: string;
+  // 视频时长文本，可选
+  duration?: string;
+}
+
+// 从 props 解构视频信息
+const { src, duration } = Astro.props;
+---
+
+<!-- 视频包装层：卡片宽度（减去头像偏移），自适应视频比例，左侧对齐 -->
+<div class="video-wrapper mt-2 w-[calc(100%-50px)] bg-black relative">
+  <!-- 视频元素：初始显示，封面由视频首帧自动截取，object-contain 保持原始比例无黑边 -->
+  <video
+    class="video-el max-h-[50vh] w-full rounded-[4px] bg-black object-contain"
+    controls
+    playsinline
+    preload="metadata"
+  >
+    <source src={src} />
+  </video>
+  <!-- 视频加载失败提示 -->
+  <div class="video-error hidden absolute inset-0 items-center justify-center bg-black/80">
+    <div class="text-center text-white/70">
+      <svg class="mx-auto mb-2 h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <polygon points="5 3 19 12 5 21 5 3" />
+      </svg>
+      <span class="text-[13px]">视频加载失败</span>
+    </div>
+  </div>
+</div>

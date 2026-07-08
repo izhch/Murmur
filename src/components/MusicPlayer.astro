@@ -1,0 +1,64 @@
+---
+// 音乐播放器组件
+
+interface Props {
+  title: string;
+  artist: string;
+  cover: string;
+  src: string;
+}
+
+const { title, artist, cover, src } = Astro.props;
+
+const coverSize = 'clamp(60px, 30%, 84px)';
+const btnSize = 30;
+const spacing = 8;
+const btnAreaWidth = `${btnSize + spacing * 2}px`;
+---
+
+<figure
+  class="music-player-container relative z-0 mt-1 w-2/3 overflow-hidden"
+  style={`--bg: url(${cover}); --cover-size: ${coverSize}; --btn-area-width: ${btnAreaWidth}; --spacing: ${spacing}px;`}
+>
+  <span class="absolute inset-0 z-[-2] bg-[image:var(--bg)] bg-cover bg-left opacity-30"></span>
+  <span class="absolute inset-0 z-[-1] bg-gradient-to-r from-transparent to-moments-card backdrop-blur-[100px] dark:to-moments-dark-card"></span>
+
+  <div class="audio-meta relative" style="width: calc(100% - var(--btn-area-width));">
+    <span class="music-cover block" style="width: var(--cover-size); aspect-ratio: 1 / 1;">
+      <img
+        src={cover}
+        alt={title}
+        class="h-full w-full rounded-l-[4px] object-cover opacity-90"
+        loading="lazy"
+      />
+    </span>
+
+    <figcaption
+      class="music-meta absolute top-1/2 -translate-y-1/2"
+      style="left: calc(var(--cover-size) + var(--spacing)); right: 0;"
+    >
+      <span class="music-title block truncate text-[15px] leading-[22px] text-moments-text dark:text-moments-dark-text opacity-90">{title}</span>
+      <span class="music-artist mt-[2px] block truncate text-[13px] leading-[18px] text-moments-text dark:text-moments-dark-text opacity-60">{artist}</span>
+    </figcaption>
+  </div>
+
+  <button
+    type="button"
+    class="music-play-btn absolute top-1/2 right-[8px] flex h-[30px] w-[30px] -translate-y-1/2 items-center justify-center"
+    aria-label="播放/暂停"
+  >
+    <img src="/icons/post.content.audio.play.light.svg" alt="" class="music-ico-play h-[30px] w-[30px]" />
+    <img src="/icons/post.content.audio.pause.light.svg" alt="" class="music-ico-pause hidden h-[30px] w-[30px]" />
+  </button>
+
+  <audio class="music-audio hidden" preload="metadata">
+    <source src={src} />
+  </audio>
+</figure>
+
+<style>
+  html.darkmode .music-ico-play,
+  html.darkmode .music-ico-pause {
+    filter: invert(1);
+  }
+</style>
