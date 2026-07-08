@@ -7,14 +7,14 @@ import type { Profile } from './types';
 export const profile: Profile = {
   siteName: '向晚的朋友圈',
   nickname: '向晚',
-  signature: '一块属于自己的自留地 | 孤久则安',
+  signature: '没有什么感同身受，只有冷暖自知。',
   avatar: '/avatar/avatar.jpeg',
   cover: '/banner/cover1.webp',
   coverDark: '/banner/cover11.webp',
 };
 
 // 网站标题（浏览器标签显示）
-export const siteTitle = '向晚的朋友圈';
+export const siteTitle = '向晚的朋友圈 · 一块属于自己的自留地';
 
 // 分页配置：首页初始加载条数
 export const PAGE_SIZE = 5;
