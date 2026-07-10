@@ -7,7 +7,7 @@ import type { Profile } from './types';
 export const profile: Profile = {
   siteName: '向晚的朋友圈',
   nickname: '向晚',
-  signature: '没有什么感同身受，只有冷暖自知。',
+  signature: '你曾如烟花绽放在我的天空',
   avatar: '/avatar/avatar.jpeg',
   cover: '/banner/cover1.webp',
   coverDark: '/banner/cover11.webp',
