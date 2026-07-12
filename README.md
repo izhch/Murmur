@@ -29,7 +29,7 @@
 | 样式 | Tailwind CSS v4 |
 | 内容 | Markdown (frontmatter + 正文) |
 | 交互 | 原生 JavaScript（无框架依赖） |
-| 部署 | Cloudflare Pages / Vercel / 任意静态托管 |
+| 部署 | 腾讯云 EdgeOne / 任意静态托管 |
 
 ---
 
@@ -45,8 +45,8 @@
 │   ├── icons/                   # SVG 图标
 │   ├── scripts/                 # 前端交互脚本
 │   │   └── moments.js           # 点赞/展开/滚动/暗色切换等逻辑
-│   ├── _headers                 # Cloudflare Pages 缓存策略
-│   └── _redirects               # 路径重定向规则
+│   ├── apple-touch-icon.png
+│   └── favicon.ico
 │
 ├── src/
 │   ├── components/              # Astro 组件
@@ -57,6 +57,7 @@
 │   │   ├── MenuPopover.astro    # 点赞 / 评论弹出菜单
 │   │   ├── MomentCard.astro     # 动态卡片（首页 & 详情页复用）
 │   │   ├── MusicPlayer.astro    # 音乐播放器
+│   │   ├── PasswordProtect.astro # 密码保护组件
 │   │   └── VideoPlayer.astro    # 视频播放器
 │   │
 │   ├── config.ts                # 全局配置（个人资料、分页等）
@@ -79,10 +80,11 @@
 │       └── global.css           # 全局样式 + 主题色变量
 │
 ├── astro.config.mjs             # Astro 配置
-├── tailwind.config.mjs          # Tailwind 配置（通过 @theme 内联在 CSS 中）
 ├── tsconfig.json                # TypeScript 配置
-├── postcss.config.mjs           # PostCSS 配置
-└── package.json
+├── postcss.config.mjs           # PostCSS 配置（Tailwind v4）
+├── package.json
+├── package-lock.json
+└── .gitignore
 ```
 
 ---
@@ -359,27 +361,37 @@ export const PAGE_SIZE = 5; // 首页初始加载条数
 
 ## 部署指南
 
-### 方式一：Cloudflare Pages（推荐）
+### 方式一：腾讯云 EdgeOne Pages（推荐）
 
-1. 将代码推送到 GitHub 仓库
-2. 登录 Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages**
-3. 点击 **Connect to Git**，选择你的仓库
-4. 构建设置：
-   - **Framework preset**: `Astro`
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-5. 点击 **Save and Deploy**，等待构建完成
-6. **Custom domains** 中绑定你的域名
+国内访问速度快，配合 GitHub 自动构建，推送代码即自动部署。
 
-### 方式二：Vercel
+**第一步：将代码推送到 GitHub 仓库**
 
-1. 推送代码到 GitHub
-2. 登录 Vercel → **Add New** → **Project**
-3. Import 你的仓库
-4. Framework Preset 选 `Astro`，其他默认
-5. 点击 **Deploy**
+详见下文 [Git 推送详细教程](#git-推送详细教程)。
 
-### 方式三：手动部署
+**第二步：在 EdgeOne 创建 Pages 项目**
+
+1. 登录 [腾讯云 EdgeOne 控制台](https://console.cloud.tencent.com/edgeone)
+2. 左侧菜单选择 **Pages 服务**
+3. 点击 **新建项目**
+4. 选择 **Git 仓库** → 绑定你的 GitHub 账号
+5. 选择 `Murmur` 仓库，点击 **下一步**
+6. 构建设置：
+   - **项目名称**：自定义（如 `murmur`）
+   - **生产环境分支**：`master`
+   - **框架预设**：选择 `Astro`
+   - **构建命令**：`npm run build`
+   - **输出目录**：`dist`
+7. 点击 **部署**，等待构建完成
+
+**第三步：绑定自定义域名**
+
+1. 进入项目 → **自定义域** → **绑定自定义域**
+2. 输入你的域名（如 `izhch.com`）
+3. 按提示配置 DNS 解析（如果域名已在 EdgeOne 托管会自动配置）
+4. 等待 SSL 证书签发完成
+
+### 方式二：手动部署
 
 ```bash
 npm run build
@@ -389,12 +401,141 @@ npm run build
 
 ---
 
-## 日常更新
+## Git 推送详细教程
 
-### 发布新动态
+### 准备工作
+
+1. 安装 Git：从 [git-scm.com](https://git-scm.com/) 下载安装
+2. 注册 GitHub 账号并创建仓库
+3. 记录你的仓库地址（如 `https://github.com/izhch/Murmur.git`）
+
+### 第一次推送（全新项目）
+
+如果本地项目还没有初始化 Git，按以下步骤操作：
+
+**1. 打开终端**
+
+按 `Win + R`，输入 `powershell`，回车；或在项目文件夹空白处按住 `Shift` + 右键，选择"在此处打开 PowerShell 窗口"。
+
+**2. 进入项目文件夹**
+
+```powershell
+cd "你的项目路径"
+```
+
+**3. 初始化 Git**
+
+```powershell
+git init
+```
+
+**4. 设置用户名和邮箱（第一次使用 Git 需要）**
+
+```powershell
+git config user.name "你的GitHub用户名"
+git config user.email "你的GitHub邮箱"
+```
+
+**5. 添加所有文件到暂存区**
+
+```powershell
+git add .
+```
+
+**6. 提交文件**
+
+```powershell
+git commit -m "初始提交"
+```
+
+**7. 重命名分支为 master**
+
+```powershell
+git branch -M master
+```
+
+**8. 关联远程仓库**
+
+```powershell
+git remote add origin https://github.com/izhch/Murmur.git
+```
+
+**9. 推送到 GitHub**
+
+```powershell
+git push -u origin master
+```
+
+> 💡 第一次推送会要求输入 GitHub 用户名和密码。如果 GitHub 开启了两步验证，密码处需要填 **Personal Access Token**（不是登录密码）。
+
+### 日常更新（每次修改后）
+
+以后每次修改完代码，只需要三步：
+
+```powershell
+# 1. 添加所有修改的文件
+git add .
+
+# 2. 提交并写备注（备注写清楚改了什么）
+git commit -m "修改了什么内容"
+
+# 3. 推送到 GitHub
+git push
+```
+
+推送完成后，EdgeOne Pages 会自动构建并部署，等待 1-2 分钟即可生效。
+
+### 常用命令速查
+
+| 命令 | 作用 |
+|------|------|
+| `git status` | 查看当前状态（哪些文件修改了） |
+| `git add .` | 添加所有修改的文件到暂存区 |
+| `git add 文件名` | 添加指定文件 |
+| `git commit -m "备注"` | 提交暂存区的文件 |
+| `git push` | 推送到远程仓库 |
+| `git pull` | 从远程仓库拉取最新代码 |
+| `git log` | 查看提交历史 |
+| `git diff` | 查看具体修改了什么内容 |
+
+### 常见问题
+
+**Q: 提示 `fatal: remote origin already exists` 怎么办？**
+
+说明已经关联过远程仓库了，先删掉再重新加：
+
+```powershell
+git remote remove origin
+git remote add origin https://github.com/izhch/Murmur.git
+```
+
+**Q: 提示 `Updates were rejected` 或 `non-fast-forward` 怎么办？**
+
+远程仓库有你本地没有的提交，先拉取再推送：
+
+```powershell
+git pull origin master
+git push origin master
+```
+
+**Q: 提示连接超时或 `Connection was reset` 怎么办？**
+
+网络问题，多试几次 `git push`；或配置 Git 代理。
+
+**Q: 提示需要输入密码，但输了不对怎么办？**
+
+GitHub 现在不支持密码登录了，需要用 **Personal Access Token**：
+
+1. GitHub 右上角头像 → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
+2. 点击 **Generate new token** → 勾选 `repo` 权限 → 生成
+3. 复制保存 token，密码处粘贴这个 token
+
+---
+
+## 发布新动态
 
 1. 在 `src/content/` 下新建 `YYYY-MM-DD.md` 文件
-2. 填写 frontmatter 和正文
+2. 填写 frontmatter 和正文（参考上文 [内容类型说明](#内容类型说明)）
 3. 提交并推送：
 
 ```bash
@@ -403,7 +544,7 @@ git commit -m "新增动态：xxx"
 git push origin master
 ```
 
-4. 等待自动部署完成（Cloudflare Pages / Vercel 约 1~2 分钟）
+4. 等待 EdgeOne 自动部署完成（约 1-2 分钟）
 
 ---
 
