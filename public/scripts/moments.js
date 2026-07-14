@@ -132,6 +132,8 @@
       var verifyPassword = async function () {
         var password = input.value.trim();
         if (!password) return;
+        submitBtn.disabled = true;
+        submitBtn.textContent = '验证中...';
         try {
           var res = await fetch(API_BASE + '/api/moments/' + encodeURIComponent(momentId) + '/verify', {
             method: 'POST',
@@ -186,12 +188,16 @@
             if (menuWrapper) menuWrapper.classList.remove('hidden');
             setTimeout(function () { form.remove(); }, 300);
           } else {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交';
             form.classList.add('error');
             input.value = '';
             input.focus();
             setTimeout(function () { form.classList.remove('error'); }, 300);
           }
         } catch (err) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '提交';
           form.classList.add('error');
           input.value = '';
           input.focus();
@@ -511,8 +517,8 @@
       this._container = document.getElementById('moments-container');
       if (!this._container || utils.isBound(this._container)) return;
 
-      // 判断是否是详情页（URL 包含 /content/）
-      this._isDetailPage = window.location.pathname.indexOf('/content/') !== -1;
+      // 判断是否是详情页（URL 存在 ?id= 查询参数）
+      this._isDetailPage = new URLSearchParams(window.location.search).has('id');
 
       if (this._isDetailPage) {
         this._loadDetailPage();
@@ -655,14 +661,12 @@
     // - API 失败：保留静态内容，不显示错误
     _loadDetailPage: async function () {
       var self = this;
-      // 从 URL 提取动态 ID：/content/xxx → xxx
-      var path = window.location.pathname;
-      var match = path.match(/\/content\/([^\/]+)/);
-      if (!match) {
+      // 从 URL query 提取动态 ID：/?id=xxx → xxx
+      var id = new URLSearchParams(window.location.search).get('id');
+      if (!id) {
         self._showError('无效的动态地址');
         return;
       }
-      var id = decodeURIComponent(match[1]);
 
       // 检查容器是否已有静态预渲染的卡片
       var hasStaticContent = !!this._container.querySelector('article[data-moment-id]');
@@ -704,17 +708,17 @@
         var html = window.MomentTemplate(moment, true);
         self._container.insertAdjacentHTML('beforeend', html);
 
-        // 渲染上下篇导航
+        // 渲染上下篇导航（使用 data-nav-id 避免整页刷新）
         if (data.prevId !== null && data.prevId !== undefined || data.nextId !== null && data.nextId !== undefined) {
           var navHtml = '<footer id="navigation" class="py-[10px]">' +
             '<nav class="ml-[68px] mr-[20px] flex items-center justify-between text-[14px] text-moments-sub dark:text-moments-dark-sub sm:ml-[75px] sm:mr-[25px]">';
           if (data.prevId) {
-            navHtml += '<a href="/content/' + encodeURIComponent(data.prevId) + '" class="cursor-pointer hover:opacity-70">上一页</a>';
+            navHtml += '<span data-nav-id="' + encodeURIComponent(data.prevId) + '" class="cursor-pointer hover:opacity-70">上一页</span>';
           } else {
             navHtml += '<span></span>';
           }
           if (data.nextId) {
-            navHtml += '<a href="/content/' + encodeURIComponent(data.nextId) + '" class="cursor-pointer hover:opacity-70">下一页</a>';
+            navHtml += '<span data-nav-id="' + encodeURIComponent(data.nextId) + '" class="cursor-pointer hover:opacity-70">下一页</span>';
           } else {
             navHtml += '<span></span>';
           }
@@ -724,6 +728,7 @@
 
         // 绑定交互
         self._bindCardInteractions();
+        self._bindNavClick();
         eventBus.emit('moments-loaded', { detail: true });
       } catch (err) {
         if (!hasStaticContent) {
@@ -748,6 +753,50 @@
       expandButton.init();
       passwordProtect.init();
       mediaError.init();
+      this._bindCardClick();
+    },
+
+    // 绑定详情页上下篇导航点击（不刷新页面）
+    _bindNavClick: function () {
+      var self = this;
+      var navItems = document.querySelectorAll('[data-nav-id]');
+      for (var i = 0; i < navItems.length; i++) {
+        var item = navItems[i];
+        if (item.dataset.navBound) continue;
+        item.dataset.navBound = 'true';
+        item.addEventListener('click', function () {
+          var navId = this.getAttribute('data-nav-id');
+          if (navId) {
+            // 更新 URL 但不刷新页面
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', '/?id=' + navId);
+            }
+            // 重新加载详情内容
+            self._loadDetailPage();
+          }
+        });
+      }
+    },
+
+    _bindCardClick: function () {
+      var self = this;
+      var articles = this._container.querySelectorAll('article[data-moment-route-id]');
+
+      for (var i = 0; i < articles.length; i++) {
+        var article = articles[i];
+        if (article.dataset.clickBound) continue;
+        article.dataset.clickBound = 'true';
+        article.addEventListener('click', function (e) {
+          // 详情页不跳转
+          if (self._isDetailPage) return;
+          // 只有点击昵称区域才跳转，其他区域（内容区、菜单、头像等）都不跳转
+          if (!e.target.closest('.moment-nickname')) return;
+          var routeId = this.dataset.momentRouteId;
+          if (routeId) {
+            window.location.href = '/?id=' + encodeURIComponent(routeId);
+          }
+        });
+      }
     },
 
     // 显示加载中提示

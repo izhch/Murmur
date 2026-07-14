@@ -92,6 +92,7 @@ function buildMoment(row, includeContent) {
   }
   var result = {
     id: row['id'],
+    routeId: row['route_id'],
     author: '向晚',
     avatar: '/avatar/avatar.jpeg',
     title: row['title'] || '',
@@ -303,6 +304,7 @@ async function getMoments(url, env, request) {
     }
     return {
         id: row['id'],
+        routeId: row['route_id'],
         author: '向晚',
         avatar: '/avatar/avatar.jpeg',
         title: row['title'] || '',
@@ -356,10 +358,25 @@ async function getPublicMoments(env) {
 }
 
 // GET /api/moments/:id — 获取单条动态 + 上一篇/下一篇（支持密码验证）
+// id 可以是原始日期格式 ID（2026-07-13-235856）或 route_id（数字）
 async function getMoment(id, env, request, password = null) {
-  const moment = await env.DB.prepare(
-    `SELECT * FROM moments WHERE id = ? AND is_deleted = 0`
-  ).bind(id).first();
+  let moment;
+  const isNumeric = /^\d+$/.test(id);
+  
+  if (isNumeric) {
+    moment = await env.DB.prepare(
+      `SELECT * FROM moments WHERE route_id = ? AND is_deleted = 0`
+    ).bind(parseInt(id)).first();
+    if (!moment) {
+      moment = await env.DB.prepare(
+        `SELECT * FROM moments WHERE id = ? AND is_deleted = 0`
+      ).bind(id).first();
+    }
+  } else {
+    moment = await env.DB.prepare(
+      `SELECT * FROM moments WHERE id = ? AND is_deleted = 0`
+    ).bind(id).first();
+  }
 
   if (!moment) {
     return json({ error: '未找到' }, 404);
@@ -396,18 +413,17 @@ async function getMoment(id, env, request, password = null) {
 
   // 上一篇（sort_order 更大 = 更新，或 sort_order 相同但 created_at 更新）
   const prev = await env.DB.prepare(
-    `SELECT id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
+    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
   ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
 
-  // 下一篇（sort_order 更小 = 更旧，或 sort_order 相同但 created_at 更旧）
   const next = await env.DB.prepare(
-    `SELECT id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
+    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
   ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
 
   return json({
     moment: buildMoment(moment),
-    prevId: prev ? prev.id : null,
-    nextId: next ? next.id : null,
+    prevId: prev ? prev.route_id : null,
+    nextId: next ? next.route_id : null,
     needPassword: false
   });
 }
@@ -438,20 +454,19 @@ async function verifyPassword(id, request, env) {
     return json({ ok: false, error: '密码错误' }, 401);
   }
 
-  // 验证成功，返回完整内容
   const prev = await env.DB.prepare(
-    `SELECT id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
+    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
   ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
 
   const next = await env.DB.prepare(
-    `SELECT id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
+    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
   ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
 
   return json({
     ok: true,
     moment: buildMoment(moment),
-    prevId: prev ? prev.id : null,
-    nextId: next ? next.id : null
+    prevId: prev ? prev.route_id : null,
+    nextId: next ? next.route_id : null
   });
 }
 
@@ -495,11 +510,17 @@ async function createMoment(request, env, ctx) {
   const collapse = (body.needsCollapse || body.collapse) ? 1 : 0;
   const isPrivate = body.is_private ? 1 : 0;
 
+  // 获取下一个 route_id（最大 route_id + 1）
+  const maxRouteIdResult = await env.DB.prepare(
+    `SELECT MAX(route_id) as max_id FROM moments WHERE is_deleted = 0`
+  ).first();
+  const nextRouteId = (maxRouteIdResult.max_id || 0) + 1;
+
   await env.DB.prepare(
-    `INSERT INTO moments (id, title, type, content, content_html, location, created_at, password_hash, collapse, images, music_title, music_artist, music_cover, music_src, video_src, video_duration, sort_order, is_deleted, is_private)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`
+    `INSERT INTO moments (id, route_id, title, type, content, content_html, location, created_at, password_hash, collapse, images, music_title, music_artist, music_cover, music_src, video_src, video_duration, sort_order, is_deleted, is_private)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`
   ).bind(
-    id, body.title || '', finalType, content, contentHtml,
+    id, nextRouteId, body.title || '', finalType, content, contentHtml,
     body.location || '', createdAt, passwordHash, collapse, images,
     body.music_title || '', body.music_artist || '', body.music_cover || '',
     body.music_src || '', body.video_src || '', body.video_duration || '',

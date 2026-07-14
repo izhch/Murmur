@@ -52,31 +52,28 @@
 │   ├── icons/                   # SVG 图标
 │   ├── scripts/                 # 前端交互脚本
 │   │   ├── admin.js             # 管理员功能（编辑/删除/上传）
-│   │   ├── moments.js           # 动态加载/滚动/暗色切换
+│   │   ├── moments.js           # 动态加载/滚动/暗色切换/详情页
 │   │   └── moment-template.js   # 卡片渲染模板
+│   ├── content/                 # 详情页 HTML（动态加载）
+│   │   └── index.html
 │   └── favicon.ico
 │
 ├── src/
 │   ├── components/              # Astro 组件
-│   │   ├── Avatar.astro
-│   │   ├── CoverBanner.astro
-│   │   ├── ImageGrid.astro
-│   │   ├── MenuPopover.astro
-│   │   ├── MomentCard.astro
-│   │   ├── MusicPlayer.astro
-│   │   ├── PasswordProtect.astro
-│   │   └── VideoPlayer.astro
+│   │   ├── CoverBanner.astro    # 封面横幅
+│   │   ├── FloatingButtons.astro # 浮动按钮（编辑/删除）
+│   │   ├── Footer.astro         # 页脚
+│   │   └── MusicPlayer.astro    # 音乐播放器
 │   │
 │   ├── config.ts                # 全局配置（个人资料）
 │   ├── types.ts                 # TypeScript 类型
-│   ├── utils.ts                 # 工具函数
 │   │
 │   ├── layouts/
 │   │   └── Layout.astro
 │   │
 │   ├── pages/
 │   │   ├── index.astro          # 主页
-│   │   └── content/[id].astro   # 详情页
+│   │   └── 404.astro            # 404 页面（老链接重定向）
 │   │
 │   └── styles/
 │       └── global.css           # 全局样式 + 主题变量
@@ -158,19 +155,25 @@ npx wrangler d1 execute moments-db --remote --file=schema.sql
 
 - 点击封面左上角**用户图标**，输入密码登录
 - 登录后再次点击用户图标，显示**个人资料弹窗**
-- 包含：发布新动态、退出登录
+- 包含：发布新动态、个人主页、退出登录
 
 ### 创建动态
 
 1. 登录后点击用户图标 → "发布新动态"
 2. 在弹窗中填写内容，选择媒体类型
 3. 支持上传图片/音频/视频到 R2
-4. 点击"发文章"发布
+4. 可设置：置顶、私密、展开收起、密码保护
+5. 点击"发文章"发布
 
 ### 编辑 / 删除
 
 - 登录后，每条动态右下角显示**编辑**和**删除**按钮
 - 删除为**硬删除**（直接从数据库删除）
+
+### 展开收起
+
+- 创建文章时勾选"展开收起"，长文本将自动收起，显示"展开"按钮
+- 用户点击展开后可再次收起
 
 ---
 

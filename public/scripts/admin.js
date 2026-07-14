@@ -129,19 +129,22 @@
       modal.id = 'admin-profile-modal';
       modal.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/50';
       modal.innerHTML =
-        '<div class="w-[300px] rounded-[12px] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:bg-moments-dark-card overflow-hidden" style="font-family: \'PingFang SC\', \'Hiragino Sans GB\', -apple-system, BlinkMacSystemFont, sans-serif;">' +
+        '<div class="w-[320px] max-h-[90vh] overflow-y-auto rounded-[12px] bg-white shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:bg-moments-dark-card overflow-hidden" style="font-family: \'PingFang SC\', \'Hiragino Sans GB\', -apple-system, BlinkMacSystemFont, sans-serif;">' +
         '<div class="relative px-5 pt-5">' +
         '<button id="profile-close" type="button" class="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-[#a0a0a0] transition-colors hover:bg-[#f5f5f5] dark:text-moments-dark-sub dark:hover:bg-moments-dark-divider">' +
         '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
         '</button>' +
         '</div>' +
-        '<div class="px-6 pb-6 text-center">' +
+        '<div class="px-6 pb-6">' +
+        '<div class="text-center mb-4">' +
         '<div class="mx-auto mb-3 h-[72px] w-[72px] rounded-full overflow-hidden bg-moments-divider dark:bg-moments-dark-divider">' +
         '<img src="/avatar/avatar.jpeg" alt="avatar" class="h-full w-full object-cover" />' +
         '</div>' +
         '<h3 class="mb-0.5 text-[18px] font-medium text-moments-text dark:text-moments-dark-text">向晚</h3>' +
-        '<p class="mb-4 text-[13px] text-[#a0a0a0] dark:text-moments-dark-sub">管理员</p>' +
-        '<div class="space-y-2">' +
+        '<p class="text-[13px] text-[#a0a0a0] dark:text-moments-dark-sub">管理员</p>' +
+        '</div>' +
+        // 操作按钮
+        '<div class="mt-4 space-y-2">' +
         '<a href="/" class="flex items-center justify-center gap-2 w-full rounded-[6px] border border-[#e8e8e8] px-4 py-2.5 text-[13px] text-moments-text transition-colors hover:bg-[#f5f5f5] dark:border-moments-dark-divider dark:text-moments-dark-text dark:hover:bg-moments-dark-divider">' +
         '<svg class="h-[15px] w-[15px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' +
         '个人主页' +
@@ -167,7 +170,11 @@
           admin.removeAdminMode();
         }
       });
-    }
+
+
+    },
+
+
   };
 
   // ========== 管理员模式：替换赞/评论为编辑/删除 ==========
@@ -416,6 +423,11 @@
         '</div>' +
         '<div class="px-6 pt-5 pb-6">' +
 
+        '<!-- 标题 -->' +
+        '<div class="mb-3">' +
+        '<input id="edit-title" type="text" placeholder="标题（可选）" value="' + esc(moment ? moment.title || '' : '') + '" class="kam-input" />' +
+        '</div>' +
+
         '<!-- 内容 -->' +
         '<div class="mb-3">' +
         '<textarea id="edit-content" rows="4" placeholder="这一刻的想法..." class="kam-content-input">' + esc(plainText) + '</textarea>' +
@@ -509,6 +521,10 @@
         '<label class="kam-check-label flex items-center gap-1.5 text-[11px] text-[#999] dark:text-moments-dark-sub">' +
         '<input type="checkbox" id="edit-private" class="kam-check" ' + (moment && (moment.is_private === 1 || moment.isPrivate === true) ? 'checked' : '') + ' />' +
         '<span>私密</span>' +
+        '</label>' +
+        '<label class="kam-check-label flex items-center gap-1.5 text-[11px] text-[#999] dark:text-moments-dark-sub">' +
+        '<input type="checkbox" id="edit-collapse" class="kam-check" ' + (moment && (moment.needsCollapse || moment.collapse === 1) ? 'checked' : '') + ' />' +
+        '<span>展开收起</span>' +
         '</label>' +
         '<label class="kam-check-label flex items-center gap-1.5 text-[11px] text-[#999] dark:text-moments-dark-sub">' +
         '<input type="checkbox" id="edit-password-enable" class="kam-check" ' + (moment && moment.hasPassword ? 'checked' : '') + ' />' +
@@ -770,18 +786,26 @@
         passwordInput.classList.remove('hidden');
       }
 
-      // 关闭
-      var close = function () { modal.remove(); };
+      // 关闭（防误关闭设置）
+      var preventClose = localStorage.getItem('moment-prevent-close') !== '0';
+      var doClose = function () { modal.remove(); };
+      var close = function () {
+        if (preventClose) {
+          if (confirm('确定关闭编辑器？未保存的内容将丢失。')) {
+            doClose();
+          }
+        } else {
+          doClose();
+        }
+      };
       modal.querySelector('#edit-close').addEventListener('click', close);
       modal.querySelector('#edit-logout').addEventListener('click', function () {
         if (confirm('确定退出管理员模式？')) {
-          close();
+          doClose();
           admin.removeAdminMode();
         }
       });
-      modal.addEventListener('click', function (e) {
-        if (e.target === modal) close();
-      });
+      // 编辑器只能点击 X 关闭，不支持点击背景关闭
 
       // 保存/发布
       modal.querySelector('#edit-save').addEventListener('click', async function () {
@@ -792,10 +816,12 @@
         var passwordInput = modal.querySelector('#edit-password').value.trim();
         var body = {
           type: getMediaType() === 'image' ? 'images' : (getMediaType() === 'audio' ? 'music' : (getMediaType() === 'video' ? 'video' : 'text')),
+          title: modal.querySelector('#edit-title').value.trim(),
           content: modal.querySelector('#edit-content').value.trim(),
           location: modal.querySelector('#edit-location').value.trim() || (moment && moment.location ? moment.location : ''),
           is_private: modal.querySelector('#edit-private').checked ? 1 : 0,
-          sort_order: modal.querySelector('#edit-stick').checked ? Date.now() : 0
+          sort_order: modal.querySelector('#edit-stick').checked ? Date.now() : 0,
+          needsCollapse: modal.querySelector('#edit-collapse').checked ? 1 : 0
         };
         if (!passwordEnable.checked) {
           body.password_hash = ''; // 关闭密码保护，清除密码
@@ -858,6 +884,7 @@
   function init() {
     admin.initNicknameTrigger();
     admin.initLoginButton();
+
     if (isLoggedIn()) {
       setTimeout(function () {
         admin.applyAdminMode();

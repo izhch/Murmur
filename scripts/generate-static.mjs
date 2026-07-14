@@ -3,9 +3,11 @@
  * 静态站点生成脚本
  *
  * 在 astro build 之后运行，从 Worker API 抓取所有公开文章，
- * 使用 moment-template.js 的模板逻辑生成 HTML 卡片，注入到：
- *   1. dist/index.html 的 #moments-container 容器（替换 loading-indicator）
- *   2. dist/content/{id}/index.html 详情页（每篇公开文章一个）
+ * 使用 moment-template.js 的模板逻辑生成 HTML 卡片，注入到首页
+ * dist/index.html 的 #moments-container 容器中。
+ *
+ * 详情页使用主页同一 HTML：/?id=xxx，由 moments.js 从 query 提取 ID
+ * 并调用 Worker API 动态加载内容渲染。后台创建的文章立即可访问详情页。
  *
  * 用法：
  *   node scripts/generate-static.mjs
@@ -45,8 +47,6 @@ function loadMomentTemplate() {
   return sandbox.window.MomentTemplate;
 }
 
-// ========== 工具函数 ==========
-
 // 替换 #moments-container 容器内部内容
 function injectContainer(html, content) {
   // 匹配 <main ... id="moments-container" ...>...</main>，替换内部内容
@@ -54,25 +54,6 @@ function injectContainer(html, content) {
     /(<main[^>]*\bid="moments-container"[^>]*>)[\s\S]*?(<\/main>)/,
     `$1\n${content}\n$2`
   );
-}
-
-// 生成详情页上下篇导航 HTML（参考 moments.js _loadDetailPage）
-function buildNavHtml(prevId, nextId) {
-  if (prevId === null && nextId === null) return '';
-  var html = '<footer id="navigation" class="py-[10px]">' +
-    '<nav class="ml-[68px] mr-[20px] flex items-center justify-between text-[14px] text-moments-sub dark:text-moments-dark-sub sm:ml-[75px] sm:mr-[25px]">';
-  if (prevId) {
-    html += '<a href="/content/' + encodeURIComponent(prevId) + '" class="cursor-pointer hover:opacity-70">上一页</a>';
-  } else {
-    html += '<span></span>';
-  }
-  if (nextId) {
-    html += '<a href="/content/' + encodeURIComponent(nextId) + '" class="cursor-pointer hover:opacity-70">下一页</a>';
-  } else {
-    html += '<span></span>';
-  }
-  html += '</nav></footer>';
-  return html;
 }
 
 // 降级方案：Node.js fetch 失败时用 PowerShell 获取数据（Windows 环境兼容）
@@ -99,7 +80,7 @@ async function main() {
   // 加载模板函数
   const MomentTemplate = loadMomentTemplate();
 
-  // 抓取公开文章（优先 fetch，失败时降级到 https 模块）
+  // 抓取公开文章（优先 fetch，失败时降级到 PowerShell）
   console.log('[generate-static] 抓取公开文章:', API_URL);
   var data;
   try {
@@ -131,33 +112,7 @@ async function main() {
   fs.writeFileSync(indexPath, homeHtml, 'utf-8');
   console.log('[generate-static] 已注入首页 dist/index.html');
 
-  // 生成详情页
-  const contentDir = path.join(distDir, 'content');
-  if (!fs.existsSync(contentDir)) {
-    fs.mkdirSync(contentDir, { recursive: true });
-  }
-
-  for (let i = 0; i < moments.length; i++) {
-    const m = moments[i];
-    // 静态详情页的上下篇只链接到公开文章（确保链接目标都有静态页）
-    const prevId = i > 0 ? moments[i - 1].id : null;
-    const nextId = i < moments.length - 1 ? moments[i + 1].id : null;
-
-    // 渲染单条卡片（isLast=true，不显示分隔线）
-    const cardHtml = MomentTemplate(m, true);
-    const navHtml = buildNavHtml(prevId, nextId);
-    const detailContent = cardHtml + navHtml;
-
-    const detailHtml = injectContainer(indexHtml, detailContent);
-
-    // 写入 dist/content/{id}/index.html
-    const detailDir = path.join(contentDir, m.id);
-    fs.mkdirSync(detailDir, { recursive: true });
-    fs.writeFileSync(path.join(detailDir, 'index.html'), detailHtml, 'utf-8');
-  }
-  console.log(`[generate-static] 已生成 ${moments.length} 个详情页 dist/content/{id}/index.html`);
-
-  console.log('[generate-static] 静态站点生成完成');
+  console.log('[generate-static] 静态站点生成完成（详情页使用 /?id= 统一路由）');
 }
 
 main().catch(function (err) {

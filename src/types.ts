@@ -6,11 +6,3 @@ export interface Profile {
   cover: string;
   coverDark?: string;
 }
-
-interface BlogFrontmatter {
-  type?: string;
-}
-
-export interface BlogModule {
-  frontmatter: BlogFrontmatter;
-}

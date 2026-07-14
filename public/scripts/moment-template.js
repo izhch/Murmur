@@ -25,13 +25,14 @@
   // 私密图标
   var PRIVATE_ICON = '<img src="/icons/post.private.light.svg" alt="私密" class="w-[18px] h-[18px]" />';
 
-  // 昵称
+  // 昵称（点击可进入详情页）
   function nickname(name, hasPassword, isPinned, isPrivate) {
     var icons = '';
     if (isPinned) icons += PIN_ICON;
     if (isPrivate) icons += PRIVATE_ICON;
-    return '<p class="pt-[2px] text-[16px] font-medium leading-[24px] text-moments-link dark:text-moments-dark-link flex items-center gap-1">' +
-      esc(name) + (hasPassword ? LOCK_ICON : '') + icons + '</p>';
+    var displayName = esc(name);
+    return '<p class="moment-nickname pt-[2px] text-[16px] font-medium leading-[24px] text-moments-link dark:text-moments-dark-link flex items-center gap-1">' +
+      displayName + (hasPassword ? LOCK_ICON : '') + icons + '</p>';
   }
 
   // 文字内容
@@ -139,8 +140,9 @@
       contentHtml += videoPlayer(c);
     }
 
-    // 组装完整卡片
-    var html = '<article class="px-[20px] pt-[12px] sm:px-[25px] sm:pt-[15px]" data-moment-id="' + esc(moment.id) + '">' +
+    // 组装完整卡片（点击进入详情页需通过 CSS 开关 --moment-card-clickable 启用）
+    var routeId = moment.routeId || moment.id;
+    var html = '<article class="px-[20px] pt-[12px] sm:px-[25px] sm:pt-[15px] moment-card" data-moment-id="' + esc(moment.id) + '" data-moment-route-id="' + esc(routeId) + '">' +
       '<div class="flex gap-[12px] sm:gap-[14px]">' +
       avatar(moment.avatar) +
       '<div class="min-w-0 flex-1">' +
@@ -149,7 +151,8 @@
     // 内容包装器（有密码保护时隐藏）
     var wrapperClass = 'moment-content-wrapper';
     if (hasPwd) wrapperClass += ' moment-content-hidden';
-    html += '<div class="' + wrapperClass + '" data-moment-id="' + esc(moment.id) + '" data-content-wrapper>' + contentHtml + '</div>';
+    // 内容区添加 moment-clickable-content，阻止卡片整体点击时触发跳转
+    html += '<div class="' + wrapperClass + ' moment-clickable-content" data-moment-id="' + esc(moment.id) + '" data-content-wrapper>' + contentHtml + '</div>';
 
     // 密码保护表单
     if (hasPwd) {
