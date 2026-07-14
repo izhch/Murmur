@@ -1,0 +1,20 @@
+name = "murmur"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# D1 数据库绑定
+[[d1_databases]]
+binding = "DB"
+database_name = "moments-db"
+database_id = "95988848-0758-43b0-8dc7-2c1c1a0c6cf2"
+
+# R2 对象存储绑定
+[[r2_buckets]]
+binding = "IMG_BUCKET"
+bucket_name = "murmur"
+
+# 以下密钥通过 `wrangler secret put` 设置，不写在此文件中：
+# ADMIN_PWD      - 管理密码
+# TEO_SECRET_ID  - 腾讯云 SecretId
+# TEO_SECRET_KEY - 腾讯云 SecretKey
+# TEO_ZONE_ID    - EdgeOne 站点ID

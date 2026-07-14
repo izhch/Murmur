@@ -24,6 +24,15 @@ const { profile } = Astro.props;
       data-cover-dark={profile.coverDark || profile.cover}
       loading="eager"
     />
+    <!-- 封面工具栏：左上角登录，右上角发布 -->
+    <div class="absolute left-0 top-0 z-20 flex w-full items-center justify-between px-[16px] py-[12px] sm:px-[20px] sm:py-[14px]">
+      <button id="cover-login-btn" type="button" class="cover-toolbar-btn" title="管理员登录" aria-label="管理员登录">
+        <img src="/icons/bar.user.light.svg" alt="" />
+      </button>
+      <button id="cover-editor-btn" type="button" class="cover-toolbar-btn" title="发布新动态" aria-label="发布新动态">
+        <img src="/icons/bar.editor.light.svg" alt="" />
+      </button>
+    </div>
   </div>
 
   <!-- 头像：右下角，向下溢出，小屏幕尺寸小一些 -->

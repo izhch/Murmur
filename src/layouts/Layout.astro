@@ -46,6 +46,9 @@ const { title = siteTitle, profile } = Astro.props;
     <FloatingButtons />
 
     <!-- 交互逻辑：从 public 目录加载，避免 Astro 脚本编译冲突 -->
+    <!-- 加载顺序：模板生成器 → 动态加载/交互 → 管理员功能 -->
+    <script src="/scripts/moment-template.js" defer></script>
     <script src="/scripts/moments.js" defer></script>
+    <script src="/scripts/admin.js" defer></script>
   </body>
 </html>

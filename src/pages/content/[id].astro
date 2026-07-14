@@ -1,71 +1,32 @@
 ---
-// 动态详情页：展示单条动态与上下篇导航
+// 动态详情页（纯动态版本）
+// 页面为空壳，内容由 moments.js 从 Worker API 加载
+// getStaticPaths 仍从 markdown 文件生成静态路径，保证已有动态的 URL 可访问
 
-// 引入布局、组件与工具函数
+// 引入布局与封面组件
 import Layout from '../../layouts/Layout.astro';
 import CoverBanner from '../../components/CoverBanner.astro';
-import MomentCard from '../../components/MomentCard.astro';
 import { profile } from '../../config';
-import { parseMoments } from '../../utils';
 import type { BlogModule } from '../../types';
 
-// 从 src/content/*.md 读取文章，构建详情页数据
-const blogPosts = import.meta.glob('../../content/*.md', { eager: true }) as Record<string, BlogModule>;
-const allMoments = parseMoments(blogPosts, profile);
-
-// 生成所有静态详情页路径
+// 从 src/content/*.md 生成静态路径（仅用于 URL 生成，不渲染内容）
 export function getStaticPaths() {
-  const posts = import.meta.glob('../../content/*.md', { eager: true });
+  const posts = import.meta.glob('../../content/*.md', { eager: true }) as Record<string, BlogModule>;
   return Object.keys(posts).map((path) => ({
-    // 使用文件名（不含路径和扩展名）作为 id，正则匹配结尾 .md，与 utils.ts 保持一致
     params: { id: path.split('/').pop()?.replace(/\.md$/, '') || '' },
   }));
 }
-
-// 根据 URL 参数查找当前动态及相邻动态
-const { id } = Astro.params;
-const moment = allMoments.find((m) => m.id === id);
-const currentIndex = allMoments.findIndex((m) => m.id === id);
-const prevMoment = currentIndex > 0 ? allMoments[currentIndex - 1] : null;
-const nextMoment = currentIndex < allMoments.length - 1 ? allMoments[currentIndex + 1] : null;
-
-// 未找到动态时重定向回首页
-if (!moment) {
-  return Astro.redirect('/');
-}
-
-// 若动态有标题，拼接到页面标题中
-const pageTitle = moment.title ? `${moment.title} · ${profile.nickname}` : undefined;
 ---
 
-<Layout title={pageTitle} profile={profile}>
+<Layout profile={profile}>
   <!-- 封面横幅 -->
   <CoverBanner profile={profile} />
 
-  <!-- 详情页主内容区 -->
-  <main class="pt-[32px] sm:pt-[36px] md:pt-[40px]">
-    <!-- 当前动态卡片 -->
-    <MomentCard moment={moment} />
-
-    <!-- 上下篇导航 -->
-    <footer id="navigation" class="py-[10px]">
-      <nav class="ml-[68px] mr-[20px] flex items-center justify-between text-[14px] text-moments-sub dark:text-moments-dark-sub sm:ml-[75px] sm:mr-[25px]">
-        {prevMoment ? (
-          <a href={`/content/${prevMoment.id}`} class="cursor-pointer hover:opacity-70">
-            上一页
-          </a>
-        ) : (
-          <span></span>
-        )}
-
-        {nextMoment ? (
-          <a href={`/content/${nextMoment.id}`} class="cursor-pointer hover:opacity-70">
-            下一页
-          </a>
-        ) : (
-          <span></span>
-        )}
-      </nav>
-    </footer>
+  <!-- 详情页主内容区：内容由 JS 从 Worker API 动态加载 -->
+  <main class="pt-[32px] sm:pt-[36px] md:pt-[40px]" id="moments-container">
+    <!-- 加载中提示 -->
+    <div class="loading-indicator py-6 text-center">
+      <span class="loading-breath text-[14px] text-moments-sub dark:text-moments-dark-sub">正在加载...</span>
+    </div>
   </main>
 </Layout>

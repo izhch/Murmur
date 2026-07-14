@@ -1,23 +1,31 @@
-# Moments Theme
+# Murmur - 朋友圈动态站点
 
-仿微信朋友圈风格的个人动态站点，基于 Astro + Tailwind CSS v4 构建。轻量、响应式、支持图文音视频多种动态类型。
+仿微信朋友圈风格的个人动态站点。前端基于 Astro + Tailwind CSS v4 构建，后端基于 Cloudflare Workers + D1 + R2 实现纯动态架构。
 
 ---
 
 ## 功能特性
 
-- ✅ 响应式布局，完美适配手机与桌面端
-- ✅ 亮色 / 暗色模式一键切换，封面图自动适配
-- ✅ 支持**文字、图片、音乐、视频**四种动态类型
-- ✅ 图片九宫格布局，点击放大预览
-- ✅ 音乐播放器：渐变背景 + 毛玻璃 + 封面联动缩放
-- ✅ 视频播放器：懒加载 + 首帧封面
-- ✅ 长文本手动收起，支持"展开 / 收起"（frontmatter `collapse: true`）
-- ✅ 无限滚动加载，下拉加载更多
-- ✅ 点赞 / 评论弹出交互
-- ✅ 浮动按钮：暗色切换 + 返回顶部
-- ✅ 文章详情页，支持上一篇 / 下一篇导航
-- ✅ 纯静态站点，部署即用，零后端依赖
+### 前端展示
+- 响应式布局，完美适配手机与桌面端
+- 亮色 / 暗色模式一键切换，封面图自动适配
+- 支持**文字、图片、音乐、视频**四种动态类型
+- 图片九宫格布局，点击放大预览
+- 音乐播放器：渐变背景 + 毛玻璃 + 封面联动
+- 视频播放器：懒加载 + 首帧封面
+- 长文本手动收起，支持"展开 / 收起"
+- 无限滚动加载，下拉加载更多
+- 点赞 / 评论弹出交互
+- 文章详情页，支持上一篇 / 下一篇导航
+
+### 管理功能
+- **前端编辑弹窗**：创建 / 编辑动态，支持 Markdown 工具栏
+- **图片上传**：直接上传到 Cloudflare R2，按年/月自动组织
+- **音频/视频上传**：支持上传到 R2 或填写外链 URL
+- **位置搜索**：集成高德地图 API
+- **密码保护**：SHA256 哈希验证，前端不暴露密码
+- **置顶文章**：支持文章置顶排序
+- **私密文章**：管理员可见的私密动态
 
 ---
 
@@ -25,66 +33,63 @@
 
 | 分类 | 技术 |
 |------|------|
-| 框架 | Astro 5 |
-| 样式 | Tailwind CSS v4 |
-| 内容 | Markdown (frontmatter + 正文) |
-| 交互 | 原生 JavaScript（无框架依赖） |
-| 部署 | 腾讯云 EdgeOne / 任意静态托管 |
+| 前端框架 | Astro 5 + Tailwind CSS v4 |
+| 前端交互 | 原生 JavaScript |
+| 后端 | Cloudflare Workers |
+| 数据库 | Cloudflare D1 (SQLite) |
+| 对象存储 | Cloudflare R2 |
+| 缓存 | 腾讯云 EdgeOne |
+| 部署 | EdgeOne Pages + Cloudflare Workers |
 
 ---
 
 ## 项目结构
 
 ```
-├── public/                      # 静态资源（直接映射到站点根目录）
-│   ├── avatar/                  # 头像图片（本地存储，不走 CDN）
-│   │   └── avatar.jpeg
-│   ├── banner/                  # 封面图（本地存储，不走 CDN）
-│   │   ├── cover1.webp          # 亮色模式封面
-│   │   └── cover11.webp         # 暗色模式封面
+├── public/                      # 静态资源
+│   ├── avatar/                  # 头像
+│   ├── banner/                  # 封面图
 │   ├── icons/                   # SVG 图标
 │   ├── scripts/                 # 前端交互脚本
-│   │   └── moments.js           # 点赞/展开/滚动/暗色切换等逻辑
-│   ├── apple-touch-icon.png
+│   │   ├── admin.js             # 管理员功能（编辑/删除/上传）
+│   │   ├── moments.js           # 动态加载/滚动/暗色切换
+│   │   └── moment-template.js   # 卡片渲染模板
 │   └── favicon.ico
 │
 ├── src/
 │   ├── components/              # Astro 组件
-│   │   ├── Avatar.astro         # 头像组件（支持圆角配置）
-│   │   ├── CoverBanner.astro    # 封面横幅（封面图 + 头像 + 昵称 + 个签）
-│   │   ├── FloatingButtons.astro # 右下角浮动按钮组
-│   │   ├── ImageGrid.astro      # 图片九宫格（1~9 张自适应布局）
-│   │   ├── MenuPopover.astro    # 点赞 / 评论弹出菜单
-│   │   ├── MomentCard.astro     # 动态卡片（首页 & 详情页复用）
-│   │   ├── MusicPlayer.astro    # 音乐播放器
-│   │   ├── PasswordProtect.astro # 密码保护组件
-│   │   └── VideoPlayer.astro    # 视频播放器
+│   │   ├── Avatar.astro
+│   │   ├── CoverBanner.astro
+│   │   ├── ImageGrid.astro
+│   │   ├── MenuPopover.astro
+│   │   ├── MomentCard.astro
+│   │   ├── MusicPlayer.astro
+│   │   ├── PasswordProtect.astro
+│   │   └── VideoPlayer.astro
 │   │
-│   ├── config.ts                # 全局配置（个人资料、分页等）
-│   ├── types.ts                 # TypeScript 类型定义
-│   ├── utils.ts                 # 工具函数（Markdown 解析、数据处理）
-│   │
-│   ├── content/                 # Markdown 动态内容（文件名即日期）
-│   │   ├── 2026-06-27.md
-│   │   ├── 2026-06-28.md
-│   │   └── ...
+│   ├── config.ts                # 全局配置（个人资料）
+│   ├── types.ts                 # TypeScript 类型
+│   ├── utils.ts                 # 工具函数
 │   │
 │   ├── layouts/
-│   │   └── Layout.astro         # 页面布局（头部、主体、暗色变量注入）
+│   │   └── Layout.astro
 │   │
 │   ├── pages/
-│   │   ├── index.astro          # 主页（动态列表 + 无限滚动）
-│   │   └── content/[id].astro   # 详情页（路由 /content/:id）
+│   │   ├── index.astro          # 主页
+│   │   └── content/[id].astro   # 详情页
 │   │
 │   └── styles/
-│       └── global.css           # 全局样式 + 主题色变量
+│       └── global.css           # 全局样式 + 主题变量
 │
-├── astro.config.mjs             # Astro 配置
-├── tsconfig.json                # TypeScript 配置
-├── postcss.config.mjs           # PostCSS 配置（Tailwind v4）
+├── worker/                      # Cloudflare Worker 后端
+│   ├── src/
+│   │   └── index.js             # Worker 入口（API 路由）
+│   ├── schema.sql               # 数据库表结构
+│   └── wrangler.toml            # Worker 配置
+│
+├── astro.config.mjs
 ├── package.json
-├── package-lock.json
-└── .gitignore
+└── README.md
 ```
 
 ---
@@ -94,7 +99,7 @@
 ### 环境要求
 
 - Node.js >= 18
-- npm 或 pnpm
+- npm
 
 ### 安装依赖
 
@@ -108,7 +113,7 @@ npm install
 npm run dev
 ```
 
-启动后访问 http://localhost:4321
+访问 http://localhost:4321
 
 ### 构建生产版本
 
@@ -116,492 +121,97 @@ npm run dev
 npm run build
 ```
 
-构建产物输出到 `dist/` 目录，可直接部署到任意静态托管服务。
+产物输出到 `dist/` 目录。
 
-### 预览构建结果
+---
+
+## 部署
+
+### 1. 部署 Cloudflare Worker 后端
 
 ```bash
-npm run preview
+cd worker
+npm install
+npx wrangler deploy
 ```
 
----
+### 2. 配置 D1 数据库
 
-## 内容类型说明
-
-所有动态文章均以 Markdown 文件形式存放在 `src/content/` 目录下，文件名格式为 `YYYY-MM-DD.md`。
-
-每种类型通过 frontmatter 中的 `type` 字段区分，以下分别说明：
-
----
-
-### 📝 纯文字动态（type: text）
-
-最简单的动态类型，只有文字内容。
-
-```yaml
----
-title: 工作反思
-date: 2026-06-30
-location: 成都
-type: text
-collapse: true  # 可选，设为 true 时正文默认收起，显示「展开」按钮
----
-
-正文内容，支持 Markdown 语法。
-
-超过一定长度的文字可通过 `collapse: true` 设为默认收起。
+```bash
+cd worker
+npx wrangler d1 execute moments-db --remote --file=schema.sql
 ```
 
-**说明：**
-- `title` 可选，用于详情页标题
-- `location` 可选，显示时间旁的位置信息
-- `collapse` 可选，设为 `true` 时正文默认收起，显示「展开」按钮
-- 正文支持标准 Markdown 语法
+### 3. 配置 R2 存储桶
+
+在 Cloudflare 控制台创建 R2 存储桶，绑定到 Worker。
+
+### 4. 部署前端到 EdgeOne Pages
+
+将 `dist/` 目录上传到腾讯云 EdgeOne Pages。
 
 ---
 
-### 🖼️ 图片动态（type: images）
+## 管理员功能
 
-支持 1~9 张图片，自适应九宫格布局。
+### 登录
 
-```yaml
----
-title: 四姑娘山徒步
-date: 2026-06-28
-location: 四川 · 阿坝
-type: images
-images:
-  - https://images.izhch.com/images/1.jpg
-  - https://images.izhch.com/images/2.jpg
-  - https://images.izhch.com/images/3.jpg
-  - https://images.izhch.com/images/4.jpg
-  - https://images.izhch.com/images/5.jpg
-  - https://images.izhch.com/images/6.jpg
----
+- 点击封面左上角**用户图标**，输入密码登录
+- 登录后再次点击用户图标，显示**个人资料弹窗**
+- 包含：发布新动态、退出登录
 
-每一步都是风景，每一眼都是震撼。
-```
+### 创建动态
 
-**布局规则：**
-| 图片数量 | 宽度 | 布局 |
-|---------|------|------|
-| 1 张 | 66% 宽度，4:3 纵横比 | 单列 |
-| 2 张 | 66% 宽度 | 2 列，gap 4px |
-| 3~9 张 | calc(100% - 50px) | 3 列，gap 4px |
+1. 登录后点击用户图标 → "发布新动态"
+2. 在弹窗中填写内容，选择媒体类型
+3. 支持上传图片/音频/视频到 R2
+4. 点击"发文章"发布
 
-**交互：**
-- 点击任意图片可放大查看
-- 支持左右切换（详情页）
-- 支持关闭（点击背景或 ESC）
-- 图片加载失败自动显示占位图
+### 编辑 / 删除
+
+- 登录后，每条动态右下角显示**编辑**和**删除**按钮
+- 删除为**硬删除**（直接从数据库删除）
 
 ---
 
-### 🎵 音乐动态（type: music）
+## 内容类型
 
-内嵌音乐播放器，支持播放/暂停。
+### 文字（type: text）
+纯文字动态，支持 Markdown 语法。
 
-```yaml
----
-title: 今日推荐
-date: 2026-06-30
-location:
-type: music
-music_title: 起风了
-music_artist: 买辣椒也用券
-music_cover: https://images.izhch.com/music/qifengle.jpg
-music_src: https://images.izhch.com/music/qifengle.mp3
----
+### 图片（type: images）
+支持 1~9 张图片，支持本地上传到 R2 或填写外链 URL。
 
-今天听的一首歌，旋律悠扬，歌词动人。
-```
+### 音乐（type: music）
+需要填写：标题、歌手、封面 URL、音频 URL。支持上传音频到 R2。
 
-**播放器特性：**
-- 宽度 66%，左对齐
-- 左侧封面，圆角 4px
-- 背景：封面图 30% 透明度 + 从左到右渐变透明 + 毛玻璃
-- 播放按钮 30px，右侧间距 8px
-- 封面尺寸随容器宽度平滑缩放（60px ~ 84px）
-- 标题 15px / 行高 22px / 90% 不透明度
-- 歌手 13px / 行高 18px / 60% 不透明度
+### 视频（type: video）
+需要填写：视频 URL、时长（可选）。支持上传视频到 R2。
 
----
-
-### 🎬 视频动态（type: video）
-
-内嵌视频播放器，懒加载优化性能。
-
-```yaml
----
-title: 海边日落
-date: 2026-07-01
-location: 三亚
-type: video
-video_src: https://images.izhch.com/videos/sunset.mp4
-video_duration: "02:30"
----
-
-波光粼粼，美不胜收。
-```
-
-**播放器特性：**
-- 宽度：`calc(100% - 50px)`（响应式）
-- 左对齐，圆角 4px
-- 首帧自动作为封面
-- 居中半透明播放按钮
-- `loading="lazy"` 懒加载
-- 父容器相对定位，避免全屏 bug
-
----
-
-### 🔒 密码保护动态（任意类型）
-
-支持为任意动态添加密码保护。密码不直接存储在代码中，而是存储 **SHA256 哈希值**，普通用户无法在开发者工具中直接看到明文密码。
-
-```yaml
----
-date: 2026-07-07
-type: text
-password_hash: 03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4
-location: 测试地点 · 密码示例
----
-
-这是一篇需要输入密码才能查看的动态。
-```
-
-**说明：**
-- 使用 `password_hash` 字段，值为密码的 SHA256 哈希值（小写十六进制）
-- 示例中 `03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4` 是 `1234` 的 SHA256 哈希
-- 可通过浏览器控制台生成哈希：
-
-```js
-async function sha256(message) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-sha256('你的密码').then(console.log);
-```
-
-> 注意：前端密码保护仍属于"防君子不防小人"的社交功能，无法防御专业用户通过修改 JS 绕过验证。真正安全需要后端鉴权。
+### 密码保护
+创建时勾选"密码保护"，输入密码。密码以 SHA256 哈希存储，前端不暴露明文。
 
 ---
 
 ## 配置说明
 
-### 个人资料配置
+### 个人资料
 
-修改 `src/config.ts` 中的 `profile` 对象，全站生效：
+修改 `src/config.ts`：
 
 ```ts
-export const profile: Profile = {
-  nickname: '林深时见鹿',          // 昵称
-  signature: '海蓝时见鲸，梦醒时见你', // 个性签名
-  avatar: '/avatar/avatar.jpeg',   // 头像（本地路径）
-  cover: '/banner/cover1.webp',    // 亮色模式封面（本地路径）
-  coverDark: '/banner/cover11.webp', // 暗色模式封面（可选）
+export const profile = {
+  nickname: '向晚',
+  signature: '你曾如烟花绽放在我的天空',
+  avatar: '/avatar/avatar.jpeg',
+  cover: '/banner/cover1.webp',
+  coverDark: '/banner/cover11.webp',
 };
 ```
 
-> 头像和封面建议放在 `public/avatar/` 和 `public/banner/` 目录本地存储，加载更快。
+### 主题色
 
-### 分页配置
-
-```ts
-export const PAGE_SIZE = 5; // 首页初始加载条数
-```
-
-向下滚动自动加载下一页（也是 5 条），直到全部加载完毕。
-
-### 主题色自定义
-
-在 `src/styles/global.css` 中通过 `@theme` 修改变量：
-
-```css
-@theme {
-  /* 亮色模式 */
-  --color-moments-bg: #f0f0f0;           /* 页面背景 */
-  --color-moments-card: #ffffff;         /* 卡片背景 */
-  --color-moments-text: #191919;         /* 正文文字 */
-  --color-moments-sub: #b2b2b2;          /* 次要文字（时间、位置） */
-  --color-moments-link: #576b95;         /* 昵称、链接色 */
-  --color-moments-like: #f04848;         /* 点赞红色 */
-  --color-moments-divider: #ececec;      /* 分割线 */
-  --color-moments-menu: #4b5153;         /* 弹出菜单背景 */
-
-  /* 暗色模式 */
-  --color-moments-dark-bg: #1a1a1a;
-  --color-moments-dark-card: #2c2c2c;
-  --color-moments-dark-text: #eaeaea;
-  --color-moments-dark-sub: #6c6c6c;
-  --color-moments-dark-link: #7d90a9;
-  --color-moments-dark-divider: #3a3a3a;
-  --color-moments-dark-menu: #606060;
-}
-```
-
----
-
-## 媒体资源建议
-
-**本地存储（走服务器）：**
-- 头像、封面图 → `public/avatar/`、`public/banner/`
-- 体积小，访问频率高，本地加载更快
-
-**R2 / CDN 存储：**
-- 文章图片、音乐、视频 → `https://images.izhch.com/`
-- 体积大，数量多，走对象存储 + CDN 更省流量
-
-在 Markdown 文章中直接填写完整 URL 即可。
-
----
-
-## 部署指南
-
-### 方式一：腾讯云 EdgeOne Pages（推荐）
-
-国内访问速度快，配合 GitHub 自动构建，推送代码即自动部署。
-
-**第一步：将代码推送到 GitHub 仓库**
-
-详见下文 [Git 推送详细教程](#git-推送详细教程)。
-
-**第二步：在 EdgeOne 创建 Pages 项目**
-
-1. 登录 [腾讯云 EdgeOne 控制台](https://console.cloud.tencent.com/edgeone)
-2. 左侧菜单选择 **Pages 服务**
-3. 点击 **新建项目**
-4. 选择 **Git 仓库** → 绑定你的 GitHub 账号
-5. 选择 `Murmur` 仓库，点击 **下一步**
-6. 构建设置：
-   - **项目名称**：自定义（如 `murmur`）
-   - **生产环境分支**：`master`
-   - **框架预设**：选择 `Astro`
-   - **构建命令**：`npm run build`
-   - **输出目录**：`dist`
-7. 点击 **部署**，等待构建完成
-
-**第三步：绑定自定义域名**
-
-1. 进入项目 → **自定义域** → **绑定自定义域**
-2. 输入你的域名（如 `izhch.com`）
-3. 按提示配置 DNS 解析（如果域名已在 EdgeOne 托管会自动配置）
-4. 等待 SSL 证书签发完成
-
-### 方式二：手动部署
-
-```bash
-npm run build
-```
-
-将 `dist/` 目录上传到任意静态托管服务（Nginx、OSS 静态网站等）。
-
----
-
-## Git 推送详细教程
-
-### 准备工作
-
-1. 安装 Git：从 [git-scm.com](https://git-scm.com/) 下载安装
-2. 注册 GitHub 账号并创建仓库
-3. 记录你的仓库地址（如 `https://github.com/izhch/Murmur.git`）
-
-### 第一次推送（全新项目）
-
-如果本地项目还没有初始化 Git，按以下步骤操作：
-
-**1. 打开终端**
-
-按 `Win + R`，输入 `powershell`，回车；或在项目文件夹空白处按住 `Shift` + 右键，选择"在此处打开 PowerShell 窗口"。
-
-**2. 进入项目文件夹**
-
-```powershell
-cd "你的项目路径"
-```
-
-**3. 初始化 Git**
-
-```powershell
-git init
-```
-
-**4. 设置用户名和邮箱（第一次使用 Git 需要）**
-
-```powershell
-git config user.name "你的GitHub用户名"
-git config user.email "你的GitHub邮箱"
-```
-
-**5. 添加所有文件到暂存区**
-
-```powershell
-git add .
-```
-
-**6. 提交文件**
-
-```powershell
-git commit -m "初始提交"
-```
-
-**7. 重命名分支为 master**
-
-```powershell
-git branch -M master
-```
-
-**8. 关联远程仓库**
-
-```powershell
-git remote add origin https://github.com/izhch/Murmur.git
-```
-
-**9. 推送到 GitHub**
-
-```powershell
-git push -u origin master
-```
-
-> 💡 第一次推送会要求输入 GitHub 用户名和密码。如果 GitHub 开启了两步验证，密码处需要填 **Personal Access Token**（不是登录密码）。
-
-### 日常更新（每次修改后）
-
-以后每次修改完代码，只需要三步：
-
-```powershell
-# 1. 添加所有修改的文件
-git add .
-
-# 2. 提交并写备注（备注写清楚改了什么）
-git commit -m "修改了什么内容"
-
-# 3. 推送到 GitHub
-git push
-```
-
-推送完成后，EdgeOne Pages 会自动构建并部署，等待 1-2 分钟即可生效。
-
-### 常用命令速查
-
-| 命令 | 作用 |
-|------|------|
-| `git status` | 查看当前状态（哪些文件修改了） |
-| `git add .` | 添加所有修改的文件到暂存区 |
-| `git add 文件名` | 添加指定文件 |
-| `git commit -m "备注"` | 提交暂存区的文件 |
-| `git push` | 推送到远程仓库 |
-| `git pull` | 从远程仓库拉取最新代码 |
-| `git log` | 查看提交历史 |
-| `git diff` | 查看具体修改了什么内容 |
-
-### 常见问题
-
-**Q: 提示 `fatal: remote origin already exists` 怎么办？**
-
-说明已经关联过远程仓库了，先删掉再重新加：
-
-```powershell
-git remote remove origin
-git remote add origin https://github.com/izhch/Murmur.git
-```
-
-**Q: 提示 `Updates were rejected` 或 `non-fast-forward` 怎么办？**
-
-远程仓库有你本地没有的提交，先拉取再推送：
-
-```powershell
-git pull origin master
-git push origin master
-```
-
-**Q: 提示连接超时或 `Connection was reset` 怎么办？**
-
-网络问题，多试几次 `git push`；或配置 Git 代理。
-
-**Q: 提示需要输入密码，但输了不对怎么办？**
-
-GitHub 现在不支持密码登录了，需要用 **Personal Access Token**：
-
-1. GitHub 右上角头像 → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
-2. 点击 **Generate new token** → 勾选 `repo` 权限 → 生成
-3. 复制保存 token，密码处粘贴这个 token
-
----
-
-## 发布新动态
-
-1. 在 `src/content/` 下新建 `YYYY-MM-DD.md` 文件
-2. 填写 frontmatter 和正文（参考上文 [内容类型说明](#内容类型说明)）
-3. 提交并推送：
-
-```bash
-git add src/content/2026-07-07.md
-git commit -m "新增动态：xxx"
-git push origin master
-```
-
-4. 等待 EdgeOne 自动部署完成（约 1-2 分钟）
-
----
-
-## 设计规范
-
-### 封面区
-
-| 元素 | 尺寸 / 位置 | 字号 / 样式 |
-|------|------------|------------|
-| 封面图 | 600 × 325px（max-w 容器内自适应） | - |
-| 头像 | 60 × 60px，圆角 7px<br>right: 25px，底部溢出封面 12px | - |
-| 昵称 | right: 95px，底部距封面底边 10px | 18px / 26px，font-weight: 700，白色 |
-| 个签 | right: 25px，底部距封面底边 44px<br>max-width: 333px，右对齐 | 14px / 22px，#b2b2b2 |
-
-### 内容区
-
-| 元素 | 尺寸 / 间距 | 字号 / 样式 |
-|------|------------|------------|
-| 卡片内边距 | padding: 15px 25px 0 | - |
-| 头像 | 36 × 36px，圆角 5px<br>margin-right: 14px | - |
-| 昵称 | 顶部比头像顶部低 2px | 16px / 24px，font-weight: 500，#576b95 |
-| 正文 | 昵称底部下方 6px | 16px / 24px，#191919 |
-| 时间/位置 | - | 14px / 22px，#b2b2b2 |
-| 分割线 | left: 75px，right: 25px | - |
-
-### 弹出菜单
-
-- 高度：40px，圆角 4px，宽度自适应
-- 背景：#4b5153
-- 按钮：margin 0 20px，padding-left: 22px
-- 字号：16px，白色，行高 24px
-- 点赞 / 评论之间有 1px 竖线分隔
-
----
-
-## 常见微调
-
-### 内容距昵称的高度
-
-四种内容类型（文字、图片、音乐、视频）分别在以下文件中调整顶部间距（`mt-*` 值）：
-
-| 类型 | 文件 | 位置 | 当前值 |
-|------|------|------|--------|
-| 文字 | `src/components/MomentCard.astro` | `.moment-body-container` 的 `mt-[6px]` | 6px |
-| 图片 | `src/components/ImageGrid.astro` | `.image-grid` 的 `mt-2` | 8px |
-| 音乐 | `src/components/MusicPlayer.astro` | `.music-player-container` 的 `mt-2` | 8px |
-| 视频 | `src/components/VideoPlayer.astro` | `.video-wrapper` 的 `mt-2` | 8px |
-
-往上移用负值（如 `-mt-[2px]`），往下移用正值（如 `mt-[2px]`）。
-
-### 网站标题
-
-修改 `src/config.ts` 中的 `siteTitle`：
-
-```ts
-export const siteTitle = '向晚的朋友圈';
-```
+在 `src/styles/global.css` 中修改 `@theme` 变量。
 
 ---
 
