@@ -28,7 +28,11 @@ const projectRoot = path.resolve(__dirname, '..');
 const distDir = path.join(projectRoot, 'dist');
 
 // 公开文章 API（不需要鉴权）
-const API_URL = 'https://murmur.3103231032.workers.dev/api/public-moments';
+const API_BASE = process.env.MURMUR_API || 'https://murmur.3103231032.workers.dev';
+const API_URL = `${API_BASE}/api/public-moments`;
+
+// 缓存文件路径（网络失败时使用缓存数据）
+const CACHE_PATH = path.join(projectRoot, 'scripts', 'moments-cache.json');
 
 // ========== 加载 moment-template.js ==========
 
@@ -80,16 +84,31 @@ async function main() {
   // 加载模板函数
   const MomentTemplate = loadMomentTemplate();
 
-  // 抓取公开文章（优先 fetch，失败时降级到 PowerShell）
+  // 抓取公开文章（优先 fetch，失败时降级到 PowerShell，再失败时使用缓存）
   console.log('[generate-static] 抓取公开文章:', API_URL);
   var data;
   try {
     const res = await fetch(API_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
+    // 保存到缓存
+    fs.writeFileSync(CACHE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    console.log('[generate-static] 数据已缓存到', CACHE_PATH);
   } catch (fetchErr) {
-    console.log('[generate-static] fetch 失败，尝试 PowerShell 降级...');
-    data = fetchViaPowerShell(API_URL);
+    console.log('[generate-static] fetch 失败:', fetchErr.message);
+    try {
+      console.log('[generate-static] 尝试 PowerShell 降级...');
+      data = fetchViaPowerShell(API_URL);
+      fs.writeFileSync(CACHE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (psErr) {
+      console.log('[generate-static] PowerShell 也失败:', psErr.message);
+      if (fs.existsSync(CACHE_PATH)) {
+        console.log('[generate-static] 使用缓存数据...');
+        data = JSON.parse(fs.readFileSync(CACHE_PATH, 'utf-8'));
+      } else {
+        throw new Error('网络和缓存都不可用，无法生成静态站点');
+      }
+    }
   }
   const moments = data.moments || [];
   console.log(`[generate-static] 获取到 ${moments.length} 篇公开文章`);
@@ -112,7 +131,20 @@ async function main() {
   fs.writeFileSync(indexPath, homeHtml, 'utf-8');
   console.log('[generate-static] 已注入首页 dist/index.html');
 
-  console.log('[generate-static] 静态站点生成完成（详情页使用 /?id= 统一路由）');
+  // 生成详情页静态兜底（每个公开文章生成独立 HTML 文件）
+  const contentDir = path.join(distDir, 'content');
+  if (!fs.existsSync(contentDir)) {
+    fs.mkdirSync(contentDir, { recursive: true });
+  }
+  for (var i = 0; i < moments.length; i++) {
+    var m = moments[i];
+    var detailHtml = injectContainer(indexHtml, MomentTemplate(m, true));
+    var detailPath = path.join(contentDir, m.id + '.html');
+    fs.writeFileSync(detailPath, detailHtml, 'utf-8');
+  }
+  console.log(`[generate-static] 已生成 ${moments.length} 个详情页静态文件`);
+
+  console.log('[generate-static] 静态站点生成完成（详情页使用 /content/:id.html 或 /?id= 路由）');
 }
 
 main().catch(function (err) {

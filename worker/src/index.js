@@ -22,26 +22,29 @@ function json(data, status = 200) {
   });
 }
 
-// 格式化日期为 YYYY-MM-DD HH:mm:ss
+// 格式化日期为 YYYY-MM-DD HH:mm:ss（使用北京时间 UTC+8）
 function formatDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${y}-${m}-${d} ${h}:${min}:${s}`;
+  const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Shanghai' };
+  const str = date.toLocaleString('zh-CN', options);
+  const parts = str.split('/');
+  const timePart = str.split(' ')[1] || '';
+  const y = parts[0];
+  const m = parts[1] || '01';
+  const d = parts[2] ? parts[2].split(' ')[0] : '01';
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')} ${timePart}`;
 }
 
-// 格式化 ID 为 YYYY-MM-DD-HHmmss
+// 格式化 ID 为 YYYY-MM-DD-HHmmss（使用北京时间 UTC+8）
 function formatDateId(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const h = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const s = String(date.getSeconds()).padStart(2, '0');
-  return `${y}-${m}-${d}-${h}${min}${s}`;
+  const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Shanghai' };
+  const str = date.toLocaleString('zh-CN', options);
+  const parts = str.split('/');
+  const timePart = str.split(' ')[1] || '';
+  const y = parts[0];
+  const m = parts[1] || '01';
+  const d = parts[2] ? parts[2].split(' ')[0] : '01';
+  const [h, min, s] = timePart.split(':').map(p => p.padStart(2, '0'));
+  return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}-${h}${min}${s}`;
 }
 
 // 简单 Markdown 转 HTML
@@ -62,7 +65,15 @@ function mdToHtml(text) {
     // 斜体 *text* → <em>text</em>
     p = p.replace(/\*(.+?)\*/g, '<em>$1</em>');
     // 链接 [text](url) → <a href="url" target="_blank">text</a>
-    p = p.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+    // 协议白名单：只允许 http, https, mailto, tel
+    p = p.replace(/\[(.+?)\]\((.+?)\)/g, function(match, text, url) {
+      const safeProtocols = ['http:', 'https:', 'mailto:', 'tel:', ''];
+      const protocol = url.split('://')[0] + ':' || '';
+      if (!safeProtocols.includes(protocol.toLowerCase())) {
+        return text;
+      }
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
+    });
     // 行内代码 `code` → <code>code</code>
     p = p.replace(/`(.+?)`/g, '<code>$1</code>');
     // 单个换行 → <br>
@@ -72,9 +83,12 @@ function mdToHtml(text) {
   return html;
 }
 
-// SHA256 哈希，返回 hex 字符串（用于密码验证）
-async function sha256HexString(message) {
-  const msgBuffer = new TextEncoder().encode(message);
+// SHA256 哈希（带盐值），返回 hex 字符串（用于密码验证）
+// 使用环境变量 PWD_SALT 作为盐值，如果未配置则使用默认值
+async function sha256HexString(message, env) {
+  const salt = env && env.PWD_SALT ? env.PWD_SALT : 'murmur_default_salt_2026';
+  const saltedMessage = salt + message;
+  const msgBuffer = new TextEncoder().encode(saltedMessage);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   return Array.from(new Uint8Array(hashBuffer))
     .map(b => b.toString(16).padStart(2, '0'))
@@ -137,13 +151,14 @@ async function auth(request, env) {
   if (pwd !== env.ADMIN_PWD) {
     return json({ ok: false, error: '密码错误' }, 401);
   }
-  // token = base64(timestamp:pwd)
+  // token = base64(JSON.stringify({timestamp, pwd}))，避免密码含冒号导致 split 失败
+  // token 有效期 24 小时
   const timestamp = Date.now();
-  const token = btoa(timestamp + ':' + pwd);
+  const token = btoa(JSON.stringify({ timestamp, pwd }));
   return json({ ok: true, token });
 }
 
-// 验证 Authorization: Bearer token
+// 验证 Authorization: Bearer token（有效期 24 小时）
 function verifyAuth(request, env) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -152,8 +167,10 @@ function verifyAuth(request, env) {
   const token = authHeader.slice(7);
   try {
     const decoded = atob(token);
-    const [timestamp, pwd] = decoded.split(':');
-    if (pwd !== env.ADMIN_PWD) return false;
+    const data = JSON.parse(decoded);
+    if (data.pwd !== env.ADMIN_PWD) return false;
+    // token 有效期 24 小时（86400000 毫秒）
+    if (Date.now() - data.timestamp > 86400000) return false;
     return true;
   } catch {
     return false;
@@ -206,7 +223,7 @@ async function purgeEdgeOneCache(env) {
     const payload = JSON.stringify({
       ZoneId: zoneId,
       Type: 'host',
-      Targets: ['izhch.com']
+      Targets: env.TEO_PURGE_TARGETS ? JSON.parse(env.TEO_PURGE_TARGETS) : ['izhch.com']
     });
 
     const timestamp = Math.floor(Date.now() / 1000);
@@ -248,13 +265,10 @@ async function purgeEdgeOneCache(env) {
 
 // ========== GitHub Actions 触发（静态站点重建）==========
 
-// 调用 GitHub repository_dispatch 触发 Actions 重建静态站点
-// 使用环境变量 GH_TOKEN（GitHub PAT）和 GH_REPO（owner/repo）
-// 通过 ctx.waitUntil 调用，不阻塞响应
 async function triggerRebuild(env) {
   try {
     const token = env.GH_TOKEN;
-    const repo = env.GH_REPO; // 格式：owner/repo
+    const repo = env.GH_REPO;
     if (!token || !repo) {
       return;
     }
@@ -264,7 +278,8 @@ async function triggerRebuild(env) {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/vnd.github+json',
         'Content-Type': 'application/json',
-        'X-GitHub-Api-Version': '2022-11-28'
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'Murmur-Worker'
       },
       body: JSON.stringify({ event_type: 'rebuild' })
     });
@@ -295,37 +310,7 @@ async function getMoments(url, env, request) {
   ).first();
 
   const moments = result.results.map(function(row) {
-    var rowType = row['type'] || 'text';
-    var rowContentHtml = row['content_html'] || '';
-    var rowImages = row['images'] || '[]';
-    var images = [];
-    if (rowImages) {
-      try { images = JSON.parse(rowImages); } catch (e) { images = []; }
-    }
-    return {
-        id: row['id'],
-        routeId: row['route_id'],
-        author: '向晚',
-        avatar: '/avatar/avatar.jpeg',
-        title: row['title'] || '',
-        content: {
-          type: rowType,
-          html: rowContentHtml,
-          images: images,
-          music_title: row['music_title'] || '',
-          music_artist: row['music_artist'] || '',
-          music_cover: row['music_cover'] || '',
-          music_src: row['music_src'] || '',
-          video_src: row['video_src'] || '',
-          video_duration: row['video_duration'] || ''
-        },
-        location: row['location'] || '',
-        createdAt: row['created_at'],
-        hasPassword: !!row['password_hash'],
-        needsCollapse: row['collapse'] === 1,
-        isPrivate: row['is_private'] === 1,
-        sort_order: row['sort_order'] !== undefined ? row['sort_order'] : 0
-      };
+    return buildMoment(row);
   });
 
   return json({
@@ -397,10 +382,12 @@ async function getMoment(id, env, request, password = null) {
     });
   }
 
-  // 如果有密码保护，验证密码
+  // 如果有密码保护，验证密码（兼容加盐哈希和无盐哈希两种格式）
   if (moment.password_hash && password) {
-    const passwordHash = await sha256HexString(password);
-    if (passwordHash !== moment.password_hash) {
+    const passwordHash = await sha256HexString(password, env);
+    // 无盐SHA256（用于兼容旧数据）
+    const unsaltedHash = await sha256Hex(password);
+    if (passwordHash !== moment.password_hash && unsaltedHash !== moment.password_hash) {
       return json({
         moment: buildMoment(moment, false),
         prevId: null,
@@ -413,17 +400,17 @@ async function getMoment(id, env, request, password = null) {
 
   // 上一篇（sort_order 更大 = 更新，或 sort_order 相同但 created_at 更新）
   const prev = await env.DB.prepare(
-    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
+    `SELECT id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
   ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
 
   const next = await env.DB.prepare(
-    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
+    `SELECT id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
   ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
 
   return json({
     moment: buildMoment(moment),
-    prevId: prev ? prev.route_id : null,
-    nextId: next ? next.route_id : null,
+    prevId: prev ? prev.id : null,
+    nextId: next ? next.id : null,
     needPassword: false
   });
 }
@@ -437,9 +424,23 @@ async function verifyPassword(id, request, env) {
     return json({ error: '请输入密码' }, 400);
   }
 
-  const moment = await env.DB.prepare(
-    `SELECT * FROM moments WHERE id = ? AND is_deleted = 0`
-  ).bind(id).first();
+  // 先检查文章是否存在且需要密码
+  const isNumeric = /^\d+$/.test(id);
+  let moment;
+  if (isNumeric) {
+    moment = await env.DB.prepare(
+      `SELECT * FROM moments WHERE route_id = ? AND is_deleted = 0`
+    ).bind(parseInt(id)).first();
+    if (!moment) {
+      moment = await env.DB.prepare(
+        `SELECT * FROM moments WHERE id = ? AND is_deleted = 0`
+      ).bind(id).first();
+    }
+  } else {
+    moment = await env.DB.prepare(
+      `SELECT * FROM moments WHERE id = ? AND is_deleted = 0`
+    ).bind(id).first();
+  }
 
   if (!moment) {
     return json({ error: '未找到' }, 404);
@@ -449,25 +450,18 @@ async function verifyPassword(id, request, env) {
     return json({ error: '该动态不需要密码' }, 400);
   }
 
-  const passwordHash = await sha256HexString(password);
-  if (passwordHash !== moment.password_hash) {
-    return json({ ok: false, error: '密码错误' }, 401);
+  // 复用 getMoment 逻辑，传入密码参数
+  const result = await getMoment(id, env, request, password);
+  
+  if (result.status === 200) {
+    const data = await result.json();
+    if (data.passwordError) {
+      return json({ ok: false, error: '密码错误' }, 401);
+    }
+    return json({ ok: true, ...data });
   }
-
-  const prev = await env.DB.prepare(
-    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order > ? OR (sort_order = ? AND created_at > ?)) ORDER BY sort_order ASC, created_at ASC LIMIT 1`
-  ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
-
-  const next = await env.DB.prepare(
-    `SELECT route_id FROM moments WHERE is_deleted = 0 AND (sort_order < ? OR (sort_order = ? AND created_at < ?)) ORDER BY sort_order DESC, created_at DESC LIMIT 1`
-  ).bind(moment.sort_order, moment.sort_order, moment.created_at).first();
-
-  return json({
-    ok: true,
-    moment: buildMoment(moment),
-    prevId: prev ? prev.route_id : null,
-    nextId: next ? next.route_id : null
-  });
+  
+  return result;
 }
 
 // POST /api/moments — 新建动态（需鉴权）
@@ -480,9 +474,24 @@ async function createMoment(request, env, ctx) {
   const now = new Date();
 
   // 自动生成 id 和时间
-  const id = body.id || formatDateId(now);
+  // id 优先使用自定义，其次是递增数字（route_id），最后是日期格式
   const createdAt = body.createdAt || formatDate(now);
   const sortOrder = body.sort_order !== undefined ? body.sort_order : now.getTime();
+
+  // 先获取下一个 route_id（用于数字ID和数据库插入）
+  const routeIdResult = await env.DB.prepare(
+    `SELECT COALESCE(MAX(route_id), 0) + 1 AS next_id FROM moments WHERE is_deleted = 0`
+  ).first();
+  const nextRouteId = routeIdResult ? routeIdResult.next_id : 1;
+
+  // ID 优先级：自定义 > 递增数字（无论是否指定日期）
+  let id;
+  if (body.id) {
+    id = body.id;
+  } else {
+    // 默认使用递增数字（1, 2, 3...）
+    id = String(nextRouteId);
+  }
 
   // 内容处理：有 content 则生成 content_html
   const content = body.content || '';
@@ -506,16 +515,11 @@ async function createMoment(request, env, ctx) {
 
   // 密码处理：如果是明文密码则转换为 SHA256 哈希
   const passwordRaw = body.password_hash || body.password || '';
-  const passwordHash = passwordRaw ? await sha256HexString(passwordRaw) : '';
+  const passwordHash = passwordRaw ? await sha256HexString(passwordRaw, env) : '';
   const collapse = (body.needsCollapse || body.collapse) ? 1 : 0;
   const isPrivate = body.is_private ? 1 : 0;
 
-  // 获取下一个 route_id（最大 route_id + 1）
-  const maxRouteIdResult = await env.DB.prepare(
-    `SELECT MAX(route_id) as max_id FROM moments WHERE is_deleted = 0`
-  ).first();
-  const nextRouteId = (maxRouteIdResult.max_id || 0) + 1;
-
+  // 使用已获取的 route_id 插入，避免子查询并发问题
   await env.DB.prepare(
     `INSERT INTO moments (id, route_id, title, type, content, content_html, location, created_at, password_hash, collapse, images, music_title, music_artist, music_cover, music_src, video_src, video_duration, sort_order, is_deleted, is_private)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`
@@ -560,12 +564,19 @@ async function updateMoment(id, request, env, ctx) {
   const contentHtml = body.content_html || (body.content !== undefined ? mdToHtml(content) : existing.content_html);
 
   const images = body.images ? stringifyImages(body.images) : existing.images;
-  // 密码处理：如果是明文密码则转换为 SHA256 哈希
-  const passwordRaw = body.password_hash !== undefined ? body.password_hash : existing.password_hash;
-  const passwordHash = passwordRaw ? await sha256HexString(passwordRaw) : '';
+  // 密码处理：只有前端明确发送了 password_hash 才重新哈希，否则保留原值（避免二次哈希）
+  let passwordHash = existing.password_hash;
+  if (body.password_hash !== undefined) {
+    if (body.password_hash === '') {
+      passwordHash = '';
+    } else {
+      passwordHash = await sha256HexString(body.password_hash, env);
+    }
+  }
   const collapse = body.needsCollapse !== undefined ? (body.needsCollapse ? 1 : 0) : existing.collapse;
   const isPrivate = body.is_private !== undefined ? (body.is_private ? 1 : 0) : existing.is_private;
   const sortOrder = body.sort_order !== undefined ? body.sort_order : existing.sort_order;
+  const newId = body.id !== undefined ? body.id : existing.id;
 
   // 类型自动修正：如果是 images 类型但没有图片，自动改为 text
   let finalType = body.type !== undefined ? body.type : existing.type;
@@ -582,17 +593,19 @@ async function updateMoment(id, request, env, ctx) {
 
   await env.DB.prepare(
     `UPDATE moments SET
-      title = ?, type = ?, content = ?, content_html = ?, location = ?,
-      password_hash = ?, collapse = ?, images = ?,
+      id = ?, title = ?, type = ?, content = ?, content_html = ?, location = ?,
+      created_at = ?, password_hash = ?, collapse = ?, images = ?,
       music_title = ?, music_artist = ?, music_cover = ?, music_src = ?,
       video_src = ?, video_duration = ?, is_private = ?, sort_order = ?
      WHERE id = ?`
   ).bind(
+    newId,
     body.title !== undefined ? body.title : existing.title,
     finalType,
     content,
     contentHtml,
     body.location !== undefined ? body.location : existing.location,
+    body.createdAt !== undefined ? (body.createdAt === '' ? formatDate(new Date()) : body.createdAt) : existing.created_at,
     passwordHash,
     collapse,
     images,
@@ -615,17 +628,17 @@ async function updateMoment(id, request, env, ctx) {
     ctx.waitUntil(triggerRebuild(env));
   }
 
-  return json({ ok: true, id });
+  return json({ ok: true, id: newId });
 }
 
-// DELETE /api/moments/:id — 硬删除（需鉴权）
+// DELETE /api/moments/:id — 软删除（需鉴权）
 async function deleteMoment(id, request, env, ctx) {
   if (!verifyAuth(request, env)) {
     return json({ error: '未授权' }, 401);
   }
 
   await env.DB.prepare(
-    `DELETE FROM moments WHERE id = ?`
+    `UPDATE moments SET is_deleted = 1 WHERE id = ?`
   ).bind(id).run();
 
   // 清理 EdgeOne 缓存
@@ -634,9 +647,23 @@ async function deleteMoment(id, request, env, ctx) {
   // 触发 GitHub Actions 重建静态站点（不阻塞响应）
   if (ctx && ctx.waitUntil) {
     ctx.waitUntil(triggerRebuild(env));
+    ctx.waitUntil(cleanupDeletedMoments(env));
   }
 
   return json({ ok: true });
+}
+
+// 清理 30 天前的软删除记录（硬删除）
+async function cleanupDeletedMoments(env) {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dateStr = formatDate(thirtyDaysAgo);
+    await env.DB.prepare(
+      `DELETE FROM moments WHERE is_deleted = 1 AND created_at < ?`
+    ).bind(dateStr).run();
+  } catch (e) {
+    console.warn('Cleanup deleted moments failed:', e.message);
+  }
 }
 
 // POST /api/upload — 上传图片到 R2（需鉴权）
@@ -650,6 +677,22 @@ async function uploadImage(request, env) {
 
   if (!file) {
     return json({ error: '未找到文件' }, 400);
+  }
+
+  // 文件类型校验：支持图片、音频、视频
+  const allowedTypes = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+    'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac',
+    'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'
+  ];
+  if (!allowedTypes.includes(file.type)) {
+    return json({ error: '只支持图片、音频、视频格式' }, 400);
+  }
+
+  // 文件大小校验：最大 10MB
+  const maxSize = 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return json({ error: '文件大小不能超过 10MB' }, 400);
   }
 
   // 按年份/月份组织路径：2026/07/1234567890.jpg

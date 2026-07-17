@@ -15,7 +15,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   // 站点域名，用于生成 sitemap 等绝对链接
   site: 'https://izhch.com',
+
   integrations: [removeHtmlComments()],
+
   vite: {
     resolve: {
       alias: {

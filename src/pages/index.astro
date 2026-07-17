@@ -5,7 +5,7 @@
 // 引入布局、封面组件与配置
 import Layout from '../layouts/Layout.astro';
 import CoverBanner from '../components/CoverBanner.astro';
-import { profile } from '../config';
+import { profile, AMAP_KEY, API_BASE } from '../config';
 ---
 
 <Layout profile={profile}>
@@ -23,4 +23,12 @@ import { profile } from '../config';
       <span class="loading-breath text-[14px] text-moments-sub dark:text-moments-dark-sub">正在加载...</span>
     </div>
   </main>
+
+  <!-- 全局配置变量注入（直接内联服务端值到客户端脚本） -->
+  <script is:inline define:vars={{ AMAP_KEY, API_BASE }}>
+    window.__CONFIG__ = {
+      amapKey: AMAP_KEY,
+      apiBase: API_BASE
+    };
+  </script>
 </Layout>

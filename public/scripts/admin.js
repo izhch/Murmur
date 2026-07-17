@@ -10,7 +10,7 @@
   'use strict';
 
   // Worker API 地址（部署后可通过 window.MURMUR_API 覆盖）
-  var API_BASE = window.MURMUR_API || 'https://murmur.3103231032.workers.dev';
+  var API_BASE = window.__CONFIG__ && window.__CONFIG__.apiBase ? window.__CONFIG__.apiBase : (window.MURMUR_API || 'https://murmur.3103231032.workers.dev');
   // token 在 localStorage 的存储键
   var TOKEN_KEY = 'murmur_admin_token';
 
@@ -30,7 +30,11 @@
   function authFetch(url, options) {
     options = options || {};
     options.headers = options.headers || {};
-    options.headers['Authorization'] = 'Bearer ' + getToken();
+    var token = getToken();
+    options.headers['Authorization'] = 'Bearer ' + token;
+    if (!token) {
+      console.warn('[admin] authFetch: token is empty');
+    }
     return fetch(url, options);
   }
 
@@ -38,6 +42,23 @@
   function esc(s) {
     if (!s) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Toast 提示（自动消失）
+  function showToast(message, type) {
+    type = type || 'success';
+    var existing = document.getElementById('admin-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    var bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-moments-link';
+    toast.className = 'fixed top-5 left-1/2 z-[200] -translate-x-1/2 rounded-[6px] px-5 py-2.5 text-[14px] text-white shadow-lg ' + bgColor + ' transition-opacity duration-300';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(function () {
+      toast.style.opacity = '0';
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 2500);
   }
 
   // ========== 登录/登出 ==========
@@ -118,6 +139,59 @@
     }
   };
 
+  // ========== 设置项生成函数 ==========
+
+  // radio 单选设置项
+  function radioSetting(key, label, defaultValue, note) {
+    var yesChecked = defaultValue ? 'checked' : '';
+    var noChecked = defaultValue ? '' : 'checked';
+    return '<div class="profile-setting-item">' +
+      '<div class="profile-setting-label">' +
+      '<span>' + esc(label) + '</span>' +
+      (note ? '<span class="profile-setting-note">' + esc(note) + '</span>' : '') +
+      '</div>' +
+      '<div class="profile-setting-options" data-setting-key="' + esc(key) + '">' +
+      '<label class="profile-radio-label">' +
+      '<input type="radio" name="' + esc(key) + '" value="1" class="profile-radio" ' + yesChecked + ' />' +
+      '<span>是</span>' +
+      '</label>' +
+      '<label class="profile-radio-label">' +
+      '<input type="radio" name="' + esc(key) + '" value="0" class="profile-radio" ' + noChecked + ' />' +
+      '<span>否</span>' +
+      '</label>' +
+      '</div>' +
+      '</div>';
+  }
+
+  // 标题设置项（radio + 复选框组合）
+  function titleSetting(key, defaultValue, linkDefaultValue, note) {
+    var yesChecked = defaultValue ? 'checked' : '';
+    var noChecked = defaultValue ? '' : 'checked';
+    var linkChecked = linkDefaultValue ? 'checked' : '';
+    return '<div class="profile-setting-item">' +
+      '<div class="profile-setting-label">' +
+      '<span>文章是否显示标题</span>' +
+      (note ? '<span class="profile-setting-note">' + esc(note) + '</span>' : '') +
+      '</div>' +
+      '<div class="profile-setting-options" data-setting-key="' + esc(key) + '">' +
+      '<label class="profile-radio-label">' +
+      '<input type="radio" name="' + esc(key) + '" value="1" class="profile-radio" ' + yesChecked + ' />' +
+      '<span>是</span>' +
+      '</label>' +
+      '<label class="profile-radio-label">' +
+      '<input type="radio" name="' + esc(key) + '" value="0" class="profile-radio" ' + noChecked + ' />' +
+      '<span>否</span>' +
+      '</label>' +
+      '</div>' +
+      '</div>' +
+      '<div class="profile-setting-item profile-setting-sub">' +
+      '<label class="profile-checkbox-label">' +
+      '<input type="checkbox" class="profile-checkbox" id="' + esc(key) + '-link" ' + linkChecked + ' />' +
+      '<span>且链接到内页</span>' +
+      '</label>' +
+      '</div>';
+  }
+
   // ========== 个人资料弹窗 ==========
 
   var profileModal = {
@@ -142,6 +216,13 @@
         '</div>' +
         '<h3 class="mb-0.5 text-[18px] font-medium text-moments-text dark:text-moments-dark-text">向晚</h3>' +
         '<p class="text-[13px] text-[#a0a0a0] dark:text-moments-dark-sub">管理员</p>' +
+        '</div>' +
+        // 设置区域
+        '<div class="profile-settings-group">' +
+        '<div class="profile-settings-title">设置</div>' +
+        titleSetting('moment-show-title', localStorage.getItem('moment-show-title') === '1', localStorage.getItem('moment-link-to-inner') !== '0') +
+        radioSetting('moment-right-click', '允许页面右击', localStorage.getItem('moment-right-click') === '1') +
+        radioSetting('moment-prevent-close', '编辑器防误关闭', localStorage.getItem('moment-prevent-close') !== '0') +
         '</div>' +
         // 操作按钮
         '<div class="mt-4 space-y-2">' +
@@ -171,7 +252,31 @@
         }
       });
 
-
+      // 设置项事件监听
+      var settingGroups = modal.querySelectorAll('[data-setting-key]');
+      settingGroups.forEach(function (group) {
+        var key = group.dataset.settingKey;
+        var radios = group.querySelectorAll('input[type="radio"]');
+        radios.forEach(function (radio) {
+          radio.addEventListener('change', function () {
+            var val = this.value;
+            localStorage.setItem(key, val);
+            // 立即应用设置
+            if (key === 'moment-right-click') {
+              admin._applyRightClick();
+            } else if (key === 'moment-show-title') {
+              admin._applyShowTitle();
+            }
+          });
+        });
+      });
+      // 链接到内页复选框
+      var linkCheckbox = modal.querySelector('#moment-show-title-link');
+      if (linkCheckbox) {
+        linkCheckbox.addEventListener('change', function () {
+          localStorage.setItem('moment-link-to-inner', this.checked ? '1' : '0');
+        });
+      }
     },
 
 
@@ -180,34 +285,6 @@
   // ========== 管理员模式：替换赞/评论为编辑/删除 ==========
 
   var admin = {
-    // 点击昵称计次
-    _clickCount: 0,
-    _clickTimer: null,
-
-    initNicknameTrigger: function () {
-      document.addEventListener('click', function (e) {
-        var article = e.target.closest('article[data-moment-id]');
-        if (!article) return;
-        var nicknameEl = article.querySelector('p.text-moments-link, p[class*="text-moments-link"]');
-        if (e.target !== nicknameEl) return;
-
-        admin._clickCount++;
-        if (admin._clickTimer) clearTimeout(admin._clickTimer);
-        admin._clickTimer = setTimeout(function () {
-          admin._clickCount = 0;
-        }, 2000);
-
-        if (admin._clickCount >= 5) {
-          admin._clickCount = 0;
-          if (isLoggedIn()) {
-            profileModal.open();
-          } else {
-            loginModal.open();
-          }
-        }
-      });
-    },
-
     initLoginButton: function () {
       var loginBtn = document.getElementById('cover-login-btn');
       var editorBtn = document.getElementById('cover-editor-btn');
@@ -250,6 +327,42 @@
         admin.restoreMenu(menuRoots[i]);
       }
       document.dispatchEvent(new CustomEvent('admin-mode-changed', { detail: { loggedIn: false } }));
+    },
+
+    // ========== 设置应用函数 ==========
+
+    // 应用右击设置
+    _applyRightClick: function () {
+      var enabled = localStorage.getItem('moment-right-click') === '1';
+      if (enabled) {
+        document.removeEventListener('contextmenu', admin._blockContextMenu);
+      } else {
+        document.addEventListener('contextmenu', admin._blockContextMenu);
+      }
+    },
+    _blockContextMenu: function (e) {
+      e.preventDefault();
+      return false;
+    },
+
+    // 应用显示标题设置
+    _applyShowTitle: function () {
+      var showTitle = localStorage.getItem('moment-show-title') === '1';
+      var nicknames = document.querySelectorAll('.moment-nickname');
+      for (var i = 0; i < nicknames.length; i++) {
+        var el = nicknames[i];
+        var title = el.dataset.title;
+        if (showTitle && title) {
+          if (!el.dataset.originalName) {
+            el.dataset.originalName = el.childNodes[0].nodeValue.trim();
+          }
+          el.childNodes[0].nodeValue = title + ' ';
+        } else {
+          if (el.dataset.originalName) {
+            el.childNodes[0].nodeValue = el.dataset.originalName + ' ';
+          }
+        }
+      }
     },
 
     // 替换单个菜单的赞/评论为编辑/删除
@@ -349,27 +462,15 @@
           var data = await res.json();
           if (data.ok) {
             close();
-            // 移除卡片元素
-            var card = document.querySelector('article[data-moment-id="' + momentId + '"]');
-            if (card) {
-              // 同时移除紧跟的分隔线
-              var next = card.nextElementSibling;
-              if (next && next.classList.contains('bg-moments-divider') || (next && next.classList.contains('bg-moments-dark-divider'))) {
-                next.remove();
-              } else if (!next) {
-                // 如果没有下一个元素，移除前一个分隔线
-                var prev = card.previousElementSibling;
-                if (prev && (prev.classList.contains('bg-moments-divider') || prev.classList.contains('bg-moments-dark-divider'))) {
-                  prev.remove();
-                }
-              }
-              card.remove();
-            }
+            showToast('删除成功', 'success');
+            document.dispatchEvent(new CustomEvent('moment-deleted', { detail: { id: momentId } }));
           } else {
+            showToast(data.error || '删除失败', 'error');
             errorEl.textContent = data.error || '删除失败';
             errorEl.classList.remove('hidden');
           }
         } catch (err) {
+          showToast('网络错误，删除失败', 'error');
           errorEl.textContent = '网络错误';
           errorEl.classList.remove('hidden');
         }
@@ -512,6 +613,25 @@
         '<button id="edit-video-btn" type="button" class="kam-image-add" title="上传视频"><span>+</span></button>' +
         '</div>' +
 
+        '<!-- 发布日期 -->' +
+        '<div class="mb-3 flex items-center gap-2 flex-wrap">' +
+        '<span class="text-[11px] text-[#999] dark:text-moments-dark-sub">发布日期</span>' +
+        '<div class="flex items-center gap-1">' +
+        '<input type="number" id="edit-date-year" placeholder="年" min="1900" max="2100" maxlength="4" class="kam-date-input rounded-[4px] border border-[#e8e8e8] w-[60px] px-2 py-1 text-[12px] text-center text-moments-text outline-none focus:border-[#576b95] dark:border-moments-dark-divider dark:bg-moments-dark-bg dark:text-moments-dark-text" />' +
+        '<span class="text-[12px] text-[#ccc]">/</span>' +
+        '<input type="number" id="edit-date-month" placeholder="月" min="1" max="12" maxlength="2" class="kam-date-input rounded-[4px] border border-[#e8e8e8] w-[45px] px-2 py-1 text-[12px] text-center text-moments-text outline-none focus:border-[#576b95] dark:border-moments-dark-divider dark:bg-moments-dark-bg dark:text-moments-dark-text" />' +
+        '<span class="text-[12px] text-[#ccc]">/</span>' +
+        '<input type="number" id="edit-date-day" placeholder="日" min="1" max="31" maxlength="2" class="kam-date-input rounded-[4px] border border-[#e8e8e8] w-[45px] px-2 py-1 text-[12px] text-center text-moments-text outline-none focus:border-[#576b95] dark:border-moments-dark-divider dark:bg-moments-dark-bg dark:text-moments-dark-text" />' +
+        '</div>' +
+        '<span class="text-[12px] text-[#ccc]"> </span>' +
+        '<div class="flex items-center gap-1">' +
+        '<input type="number" id="edit-date-hour" placeholder="时" min="0" max="23" maxlength="2" class="kam-date-input rounded-[4px] border border-[#e8e8e8] w-[45px] px-2 py-1 text-[12px] text-center text-moments-text outline-none focus:border-[#576b95] dark:border-moments-dark-divider dark:bg-moments-dark-bg dark:text-moments-dark-text" />' +
+        '<span class="text-[12px] text-[#ccc]">:</span>' +
+        '<input type="number" id="edit-date-minute" placeholder="分" min="0" max="59" maxlength="2" class="kam-date-input rounded-[4px] border border-[#e8e8e8] w-[45px] px-2 py-1 text-[12px] text-center text-moments-text outline-none focus:border-[#576b95] dark:border-moments-dark-divider dark:bg-moments-dark-bg dark:text-moments-dark-text" />' +
+        '</div>' +
+        '<span class="text-[10px] text-[#aaa] dark:text-moments-dark-sub">（留空则使用当前时间）</span>' +
+        '</div>' +
+
         '<!-- 文章选项 -->' +
         '<div class="mb-3 flex items-center gap-4 pt-2 border-t border-[#f0f0f0] dark:border-moments-dark-divider">' +
         '<label class="kam-check-label flex items-center gap-1.5 text-[11px] text-[#999] dark:text-moments-dark-sub">' +
@@ -581,6 +701,14 @@
         var checked = modal.querySelector('input[name="edit-media-type"]:checked');
         return checked ? checked.value : 'text';
       };
+      // 检查当前媒体区域是否有已填数据
+      var hasMediaData = function (type) {
+        if (type === 'image') return currentImages.length > 0 || modal.querySelector('#edit-images-manual').value.trim();
+        if (type === 'audio') return modal.querySelector('#edit-music-src').value.trim() || modal.querySelector('#edit-music-title').value.trim();
+        if (type === 'video') return modal.querySelector('#edit-video-src').value.trim();
+        return false;
+      };
+      var previousMediaType = getMediaType();
       var updateMediaSection = function () {
         var val = getMediaType();
         modal.querySelector('#edit-images-section').classList.toggle('hidden', val !== 'image');
@@ -588,11 +716,25 @@
         modal.querySelector('#edit-video-section').classList.toggle('hidden', val !== 'video');
       };
       mediaRadios.forEach(function (radio) {
-        radio.addEventListener('change', updateMediaSection);
+        radio.addEventListener('change', function () {
+          var newVal = this.value;
+          // 切换前检查是否有数据
+          if (newVal !== previousMediaType && hasMediaData(previousMediaType)) {
+            if (!confirm('切换媒体类型将丢失当前已填写的数据，确定切换？')) {
+              // 取消切换：恢复原选中的 radio
+              var prevRadio = modal.querySelector('input[name="edit-media-type"][value="' + previousMediaType + '"]');
+              if (prevRadio) prevRadio.checked = true;
+              return;
+            }
+          }
+          previousMediaType = newVal;
+          updateMediaSection();
+        });
       });
 
       // 图片上传
       var uploadInput = modal.querySelector('#edit-image-upload');
+      var imageBtn = modal.querySelector('#edit-image-btn');
       modal.querySelector('#edit-image-btn').addEventListener('click', function () {
         uploadInput.click();
       });
@@ -600,6 +742,10 @@
         var files = Array.prototype.slice.call(uploadInput.files);
         if (files.length === 0) return;
         var errorEl = modal.querySelector('#edit-error');
+        // 上传中：按钮禁用 + loading 文案
+        imageBtn.disabled = true;
+        imageBtn.innerHTML = '<span class="text-[14px]">上传中...</span>';
+        var successCount = 0;
         for (var i = 0; i < files.length; i++) {
           var file = files[i];
           var formData = new FormData();
@@ -612,14 +758,20 @@
             var data = await res.json();
             if (data.url) {
               currentImages.push(data.url);
+              successCount++;
             }
           } catch (err) {
+            showToast('图片上传失败：' + file.name, 'error');
             errorEl.textContent = '图片上传失败：' + file.name;
             errorEl.classList.remove('hidden');
           }
         }
         renderImages();
         uploadInput.value = '';
+        // 恢复按钮
+        imageBtn.disabled = false;
+        imageBtn.innerHTML = '<span>+</span>';
+        if (successCount > 0) showToast('成功上传 ' + successCount + ' 张图片', 'success');
       });
 
       // 手动输入图片 URL
@@ -639,6 +791,9 @@
         var file = musicUpload.files[0];
         if (!file) return;
         var errorEl = modal.querySelector('#edit-error');
+        // 上传中：按钮禁用 + loading
+        musicBtn.disabled = true;
+        musicBtn.innerHTML = '<span class="text-[14px]">上传中...</span>';
         var formData = new FormData();
         formData.append('file', file);
         try {
@@ -649,12 +804,17 @@
           var data = await res.json();
           if (data.url) {
             modal.querySelector('#edit-music-src').value = data.url;
+            showToast('音频上传成功', 'success');
           }
         } catch (err) {
+          showToast('音频上传失败：' + file.name, 'error');
           errorEl.textContent = '音频上传失败：' + file.name;
           errorEl.classList.remove('hidden');
         }
         musicUpload.value = '';
+        // 恢复按钮
+        musicBtn.disabled = false;
+        musicBtn.innerHTML = '<span>+</span>';
       });
 
       // 视频上传
@@ -667,6 +827,9 @@
         var file = videoUpload.files[0];
         if (!file) return;
         var errorEl = modal.querySelector('#edit-error');
+        // 上传中：按钮禁用 + loading
+        videoBtn.disabled = true;
+        videoBtn.innerHTML = '<span class="text-[14px]">上传中...</span>';
         var formData = new FormData();
         formData.append('file', file);
         try {
@@ -677,12 +840,17 @@
           var data = await res.json();
           if (data.url) {
             modal.querySelector('#edit-video-src').value = data.url;
+            showToast('视频上传成功', 'success');
           }
         } catch (err) {
+          showToast('视频上传失败：' + file.name, 'error');
           errorEl.textContent = '视频上传失败：' + file.name;
           errorEl.classList.remove('hidden');
         }
         videoUpload.value = '';
+        // 恢复按钮
+        videoBtn.disabled = false;
+        videoBtn.innerHTML = '<span>+</span>';
       });
 
       // 位置搜索交互
@@ -735,16 +903,22 @@
           locationResults.innerHTML = '<div class="px-4 py-3 text-[12px] text-[#a0a0a0] dark:text-moments-dark-sub">输入关键词搜索位置</div>';
           return;
         }
+        // 搜索中 loading 状态
+        locationResults.innerHTML = '<div class="px-4 py-3 text-[12px] text-[#a0a0a0] dark:text-moments-dark-sub">搜索中...</div>';
         searchTimer = setTimeout(async function () {
           try {
-            var amapKey = 'fa87d30b901b3e1d2d35749490720b4a';
+            var amapKey = window.__CONFIG__ && window.__CONFIG__.amapKey ? window.__CONFIG__.amapKey : 'fa87d30b901b3e1d2d35749490720b4a';
             var res = await fetch('https://restapi.amap.com/v3/place/text?key=' + amapKey + '&keywords=' + encodeURIComponent(val) + '&output=json&offset=6&extensions=base', {
               headers: { 'Accept': 'application/json' }
             });
             var data = await res.json();
-            renderLocationResults(data.pois || []);
+            if (data.status === '1' && (!data.pois || data.pois.length === 0)) {
+              locationResults.innerHTML = '<div class="px-4 py-3 text-[12px] text-[#a0a0a0] dark:text-moments-dark-sub">未找到相关位置</div>';
+            } else {
+              renderLocationResults(data.pois || []);
+            }
           } catch (err) {
-            locationResults.innerHTML = '<div class="px-4 py-3 text-[12px] text-red-500">搜索失败</div>';
+            locationResults.innerHTML = '<div class="px-4 py-3 text-[12px] text-red-500">搜索失败，请重试</div>';
           }
         }, 400);
       });
@@ -780,7 +954,13 @@
       var passwordInput = modal.querySelector('#edit-password');
       passwordEnable.addEventListener('change', function () {
         passwordInput.classList.toggle('hidden', !this.checked);
-        if (this.checked) passwordInput.focus();
+        if (this.checked) {
+          // 开启时聚焦密码输入框
+          passwordInput.focus();
+        } else {
+          // 关闭时清空密码输入框
+          passwordInput.value = '';
+        }
       });
       if (passwordEnable.checked) {
         passwordInput.classList.remove('hidden');
@@ -807,6 +987,46 @@
       });
       // 编辑器只能点击 X 关闭，不支持点击背景关闭
 
+      // 日期输入框：年月日分开，聚焦全选，自动跳转
+      var dateYearEl = modal.querySelector('#edit-date-year');
+      var dateMonthEl = modal.querySelector('#edit-date-month');
+      var dateDayEl = modal.querySelector('#edit-date-day');
+      var focusSelect = function () {
+        var el = this;
+        requestAnimationFrame(function () { el.select(); });
+      };
+      dateYearEl.addEventListener('focus', focusSelect);
+      dateMonthEl.addEventListener('focus', focusSelect);
+      dateDayEl.addEventListener('focus', focusSelect);
+      // 年份输入4位后自动跳到月份
+      dateYearEl.addEventListener('input', function () {
+        if (this.value.length === 4) dateMonthEl.focus();
+      });
+      // 月份输入2位后自动跳到日期
+      dateMonthEl.addEventListener('input', function () {
+        if (this.value.length === 2) dateDayEl.focus();
+      });
+
+      // 编辑模式：初始化日期值（从现有数据拆成年月日时分）
+      if (!isNew && moment) {
+        var existingDate = moment.created_at || moment.createdAt;
+        if (existingDate) {
+          var dateParts = existingDate.slice(0, 10).split('-');
+          if (dateParts.length === 3) {
+            dateYearEl.value = dateParts[0];
+            dateMonthEl.value = dateParts[1];
+            dateDayEl.value = dateParts[2];
+          }
+          var timeParts = existingDate.slice(11, 16).split(':');
+          if (timeParts.length >= 2) {
+            var dateHourEl = modal.querySelector('#edit-date-hour');
+            var dateMinuteEl = modal.querySelector('#edit-date-minute');
+            if (dateHourEl) dateHourEl.value = timeParts[0];
+            if (dateMinuteEl) dateMinuteEl.value = timeParts[1];
+          }
+        }
+      }
+
       // 保存/发布
       modal.querySelector('#edit-save').addEventListener('click', async function () {
         var errorEl = modal.querySelector('#edit-error');
@@ -814,15 +1034,34 @@
 
         var passwordEnable = modal.querySelector('#edit-password-enable');
         var passwordInput = modal.querySelector('#edit-password').value.trim();
+        var dateYear = modal.querySelector('#edit-date-year').value.trim();
+        var dateMonth = modal.querySelector('#edit-date-month').value.trim();
+        var dateDay = modal.querySelector('#edit-date-day').value.trim();
+        var dateHour = modal.querySelector('#edit-date-hour').value.trim();
+        var dateMinute = modal.querySelector('#edit-date-minute').value.trim();
+        var dateInput = '';
+        if (dateYear && dateMonth && dateDay) {
+          dateInput = dateYear + '-' + (dateMonth.length === 1 ? '0' + dateMonth : dateMonth) + '-' + (dateDay.length === 1 ? '0' + dateDay : dateDay);
+          dateInput += ' ' + (dateHour.length === 1 ? '0' + dateHour : dateHour || '00') + ':' + (dateMinute.length === 1 ? '0' + dateMinute : dateMinute || '00') + ':00';
+        }
+        var originalDate = moment && (moment.created_at || moment.createdAt) ? (moment.created_at || moment.createdAt) : '';
         var body = {
           type: getMediaType() === 'image' ? 'images' : (getMediaType() === 'audio' ? 'music' : (getMediaType() === 'video' ? 'video' : 'text')),
           title: modal.querySelector('#edit-title').value.trim(),
           content: modal.querySelector('#edit-content').value.trim(),
-          location: modal.querySelector('#edit-location').value.trim() || (moment && moment.location ? moment.location : ''),
+          location: modal.querySelector('#edit-location').value.trim(),
           is_private: modal.querySelector('#edit-private').checked ? 1 : 0,
           sort_order: modal.querySelector('#edit-stick').checked ? Date.now() : 0,
           needsCollapse: modal.querySelector('#edit-collapse').checked ? 1 : 0
         };
+        // 自定义发布日期：只有当用户明确修改了日期时才发送
+        // - 新建：有日期则设置，无日期则后端自动生成
+        // - 编辑：日期与原值不同时才发送，保持原值则不发送此字段
+        if (isNew && dateInput) {
+          body.createdAt = dateInput;
+        } else if (!isNew && dateInput !== '' && dateInput !== originalDate) {
+          body.createdAt = dateInput;
+        }
         if (!passwordEnable.checked) {
           body.password_hash = ''; // 关闭密码保护，清除密码
         } else if (passwordInput) {
@@ -864,14 +1103,16 @@
           });
           var data = await res.json();
           if (data.ok) {
-            close();
-            // 刷新页面以显示最新数据
-            window.location.reload();
+            doClose();
+            showToast(isNew ? '发布成功' : '保存成功', 'success');
+            document.dispatchEvent(new CustomEvent('moment-saved', { detail: { id: data.id } }));
           } else {
+            showToast(data.error || '保存失败', 'error');
             errorEl.textContent = data.error || '保存失败';
             errorEl.classList.remove('hidden');
           }
         } catch (err) {
+          showToast('网络错误，保存失败', 'error');
           errorEl.textContent = '网络错误';
           errorEl.classList.remove('hidden');
         }
@@ -882,8 +1123,11 @@
   // ========== 初始化 ==========
 
   function init() {
-    admin.initNicknameTrigger();
     admin.initLoginButton();
+
+    // 应用设置
+    admin._applyRightClick();
+    admin._applyShowTitle();
 
     if (isLoggedIn()) {
       setTimeout(function () {
@@ -892,6 +1136,8 @@
     }
 
     document.addEventListener('moments-loaded', function () {
+      // 新卡片加载后应用标题设置
+      admin._applyShowTitle();
       if (isLoggedIn()) {
         setTimeout(function () {
           var menuRoots = document.querySelectorAll('[data-menu-root]:not([data-admin-replaced])');

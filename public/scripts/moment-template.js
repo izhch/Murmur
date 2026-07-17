@@ -25,13 +25,14 @@
   // 私密图标
   var PRIVATE_ICON = '<img src="/icons/post.private.light.svg" alt="私密" class="w-[18px] h-[18px]" />';
 
-  // 昵称（点击可进入详情页）
-  function nickname(name, hasPassword, isPinned, isPrivate) {
+  // 昵称（点击可进入详情页，data-title 用于"显示标题"设置）
+  function nickname(name, hasPassword, isPinned, isPrivate, title) {
     var icons = '';
     if (isPinned) icons += PIN_ICON;
     if (isPrivate) icons += PRIVATE_ICON;
     var displayName = esc(name);
-    return '<p class="moment-nickname pt-[2px] text-[16px] font-medium leading-[24px] text-moments-link dark:text-moments-dark-link flex items-center gap-1">' +
+    var titleAttr = title ? ' data-title="' + esc(title) + '"' : '';
+    return '<p class="moment-nickname pt-[2px] text-[16px] font-medium leading-[24px] text-moments-link dark:text-moments-dark-link flex items-center gap-1"' + titleAttr + '>' +
       displayName + (hasPassword ? LOCK_ICON : '') + icons + '</p>';
   }
 
@@ -53,7 +54,7 @@
   function imageGrid(images) {
     if (!images || images.length === 0) return '';
     var count = images.length;
-    var wrapperClass = count === 1 ? 'w-2/3' : count === 2 ? 'w-2/3 grid-cols-2' : 'w-[calc(100%-50px)] grid-cols-3';
+    var wrapperClass = count === 1 ? 'w-2/3' : count === 2 ? 'w-2/3 grid-cols-2' : count === 4 ? 'w-[calc(100%-50px)] grid-cols-2' : 'w-[calc(100%-50px)] grid-cols-3';
     var thumbClass = count === 1 ? 'aspect-[4/3]' : 'aspect-square';
 
     var thumbs = images.map(function (src, i) {
@@ -95,7 +96,6 @@
       '<span class="text-[13px]">视频加载失败</span></div></div></div>';
   }
 
-  // 密码保护表单
   function passwordForm(momentId) {
     return '<form class="password-form" data-moment-id="' + esc(momentId) + '" onsubmit="return false;">' +
       '<div class="password-input-group"><input type="password" class="password-field" inputmode="numeric" placeholder="密码" autocomplete="off" />' +
@@ -140,13 +140,11 @@
       contentHtml += videoPlayer(c);
     }
 
-    // 组装完整卡片（点击进入详情页需通过 CSS 开关 --moment-card-clickable 启用）
-    var routeId = moment.routeId || moment.id;
-    var html = '<article class="px-[20px] pt-[12px] sm:px-[25px] sm:pt-[15px] moment-card" data-moment-id="' + esc(moment.id) + '" data-moment-route-id="' + esc(routeId) + '">' +
+    var html = '<article class="px-[20px] pt-[12px] sm:px-[25px] sm:pt-[15px] moment-card" data-moment-id="' + esc(moment.id) + '">' +
       '<div class="flex gap-[12px] sm:gap-[14px]">' +
       avatar(moment.avatar) +
       '<div class="min-w-0 flex-1">' +
-      nickname(moment.author, hasPwd, isPinned, isPrivate);
+      nickname(moment.author, hasPwd, isPinned, isPrivate, moment.title);
 
     // 内容包装器（有密码保护时隐藏）
     var wrapperClass = 'moment-content-wrapper';

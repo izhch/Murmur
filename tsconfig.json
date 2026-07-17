@@ -1,16 +1,19 @@
 {
-  // 继承 Astro 严格类型配置
-  "extends": "astro/tsconfigs/strict",
-  // 包含 Astro 生成的类型声明与项目全部文件
-  "include": [".astro/types.d.ts", "**/*"],
-  // 排除构建产物目录
-  "exclude": ["dist"],
-  "compilerOptions": {
-    // 设置基础路径，用于路径别名解析
-    "baseUrl": ".",
-    // 配置 @/* 指向 src/*，与 vite.alias 保持一致
-    "paths": {
-      "@/*": ["src/*"]
-    }
-  }
+	"extends": "astro/tsconfigs/strict",
+	"include": [
+		".astro/types.d.ts",
+		"**/*",
+		"./worker-configuration.d.ts"
+	],
+	"exclude": [
+		"dist"
+	],
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": [
+				"src/*"
+			]
+		}
+	}
 }

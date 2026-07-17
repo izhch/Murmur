@@ -18,3 +18,10 @@ export const siteTitle = '向晚的朋友圈 · 一块属于自己的自留地';
 
 // 分页配置：首页初始加载条数
 export const PAGE_SIZE = 5;
+
+// 高德地图 API Key（用于位置搜索）
+export const AMAP_KEY = 'fa87d30b901b3e1d2d35749490720b4a';
+
+// API 基础地址（前端调用 Worker API）
+// 开发环境可通过 MURMUR_API 环境变量覆盖
+export const API_BASE = 'https://murmur.3103231032.workers.dev';
