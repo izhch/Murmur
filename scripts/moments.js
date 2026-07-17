@@ -7,7 +7,7 @@
   'use strict';
 
   // Worker API 地址（部署后可通过 window.MURMUR_API 覆盖）
-  var API_BASE = window.MURMUR_API || 'https://murmur.3103231032.workers.dev';
+  var API_BASE = window.__CONFIG__ && window.__CONFIG__.apiBase ? window.__CONFIG__.apiBase : (window.MURMUR_API || 'https://murmur.3103231032.workers.dev');
   // 首页分页大小
   var PAGE_SIZE = 5;
 
@@ -43,9 +43,9 @@
       }
       if (msg.indexOf('CORS') >= 0) return '跨域访问被阻止，请检查 API 配置';
       if (msg.indexOf('HTTP 5') >= 0) return '服务器内部错误，请稍后重试';
-      if (msg.indexOf('HTTP 4') >= 0) return '请求失败 (' + msg + ')';
       if (msg.indexOf('HTTP 404') >= 0) return '资源不存在';
       if (msg.indexOf('HTTP 403') >= 0) return '没有访问权限';
+      if (msg.indexOf('HTTP 4') >= 0) return '请求失败 (' + msg + ')';
       return '加载失败，请稍后重试';
     }
   };
@@ -148,28 +148,11 @@
             form.classList.add('unlocking');
             if (contentWrapper) {
               var fullMoment = data.moment;
-              var c = fullMoment.content || {};
-              var newContentHtml = '';
-              if (c.type === 'text' && c.html) {
-                newContentHtml = '<div class="moment-body-container mt-[3px]"><div class="moment-body text-[15px] leading-[24px] text-moments-text dark:text-moments-dark-text break-words sm:text-[16px]">' + c.html + '</div></div>';
-              } else if (c.type === 'images') {
-                if (c.html) newContentHtml += '<div class="moment-body-container mt-[3px]"><div class="moment-body text-[15px] leading-[24px] text-moments-text dark:text-moments-dark-text break-words sm:text-[16px]">' + c.html + '</div></div>';
-                if (c.images && c.images.length > 0) {
-                  var gridClass = c.images.length === 1 ? 'w-2/3' : c.images.length === 2 ? 'w-2/3 grid-cols-2' : 'w-[calc(100%-50px)] grid-cols-3';
-                  var thumbClass = c.images.length === 1 ? 'aspect-[4/3]' : 'aspect-square';
-                  var thumbs = c.images.map(function (src, i) {
-                    return '<div class="image-thumb relative cursor-zoom-in overflow-hidden bg-moments-divider dark:bg-moments-dark-divider ' + thumbClass + '" data-index="' + i + '"><img src="' + src + '" alt="图片 ' + (i + 1) + '" class="image-thumb-img absolute left-0 top-0 h-full w-full object-cover" loading="lazy" /><div class="image-error-placeholder hidden absolute inset-0 items-center justify-center bg-moments-divider dark:bg-moments-dark-divider"><svg class="h-8 w-8 text-moments-sub dark:text-moments-dark-sub opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg></div></div>';
-                  }).join('');
-                  newContentHtml += '<div class="image-grid mt-2 grid gap-1 ' + gridClass + '" data-images="' + JSON.stringify(c.images) + '">' + thumbs + '</div>';
-                }
-              } else if (c.type === 'music') {
-                if (c.html) newContentHtml += '<div class="moment-body-container mt-[3px]"><div class="moment-body text-[15px] leading-[24px] text-moments-text dark:text-moments-dark-text break-words sm:text-[16px]">' + c.html + '</div></div>';
-                newContentHtml += '<figure class="music-player-container relative z-0 mt-1 w-2/3 overflow-hidden"><span class="absolute inset-0 z-[-2] bg-cover bg-left opacity-30" style="background-image: url(' + c.music_cover + ');"></span><span class="absolute inset-0 z-[-1] bg-gradient-to-r from-transparent to-moments-card backdrop-blur-[100px] dark:to-moments-dark-card"></span><div class="audio-meta relative flex items-center pr-[46px]"><span class="music-cover block h-[72px] w-[72px] shrink-0 sm:h-[84px] sm:w-[84px]"><img src="' + c.music_cover + '" alt="' + c.music_title + '" class="h-full w-full rounded-l-[4px] object-cover opacity-90" loading="lazy" /></span><figcaption class="music-meta min-w-0 px-2"><span class="music-title block truncate text-[15px] leading-[22px] text-moments-text dark:text-moments-dark-text opacity-90">' + c.music_title + '</span><span class="music-artist mt-[2px] block truncate text-[13px] leading-[18px] text-moments-text dark:text-moments-dark-text opacity-60">' + c.music_artist + '</span></figcaption></div><button type="button" class="music-play-btn absolute top-1/2 right-[8px] flex h-[30px] w-[30px] -translate-y-1/2 items-center justify-center" aria-label="播放/暂停"><img src="/icons/post.content.audio.play.light.svg" alt="" class="music-ico-play h-[30px] w-[30px]" /><img src="/icons/post.content.audio.pause.light.svg" alt="" class="music-ico-pause hidden h-[30px] w-[30px]" /></button><audio class="music-audio hidden" preload="metadata"><source src="' + c.music_src + '" /></audio></figure>';
-              } else if (c.type === 'video') {
-                if (c.html) newContentHtml += '<div class="moment-body-container mt-[3px]"><div class="moment-body text-[15px] leading-[24px] text-moments-text dark:text-moments-dark-text break-words sm:text-[16px]">' + c.html + '</div></div>';
-                newContentHtml += '<div class="video-wrapper mt-2 w-[calc(100%-50px)] bg-black relative"><video class="video-el max-h-[50vh] w-full rounded-[4px] bg-black object-contain" controls playsinline preload="metadata"><source src="' + c.video_src + '" /></video><div class="video-error hidden absolute inset-0 items-center justify-center bg-black/80"><div class="text-center text-white/70"><svg class="mx-auto mb-2 h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3" /></svg><span class="text-[13px]">视频加载失败</span></div></div></div>';
-              }
-              contentWrapper.innerHTML = newContentHtml;
+              var templateHtml = window.MomentTemplate(fullMoment, true);
+              var tempDiv = document.createElement('div');
+              tempDiv.innerHTML = templateHtml;
+              var newContent = tempDiv.querySelector('[data-content-wrapper]');
+              contentWrapper.innerHTML = newContent ? newContent.innerHTML : '';
               contentWrapper.classList.remove('moment-content-hidden');
               var originalHeight = contentWrapper.scrollHeight;
               contentWrapper.style.maxHeight = '0';
@@ -213,22 +196,20 @@
 
   // ========== 音乐播放器 ==========
 
-  var musicPlayer = {
-    pauseAll: function (exceptAudio) {
-      var all = document.querySelectorAll('.music-audio');
-      for (var i = 0; i < all.length; i++) {
-        var audio = all[i];
-        if (audio !== exceptAudio) {
-          audio.pause();
-          audio.currentTime = 0;
-          var container = audio.closest('.music-player-container');
-          if (container) {
-            utils.toggleHidden(container.querySelector('.music-ico-play'), false);
-            utils.toggleHidden(container.querySelector('.music-ico-pause'), true);
-          }
-        }
+var musicPlayer = {
+  _currentPlaying: null,
+  pauseAll: function (exceptAudio) {
+    if (this._currentPlaying && this._currentPlaying !== exceptAudio) {
+      this._currentPlaying.pause();
+      this._currentPlaying.currentTime = 0;
+      var container = this._currentPlaying.closest('.music-player-container');
+      if (container) {
+        utils.toggleHidden(container.querySelector('.music-ico-play'), false);
+        utils.toggleHidden(container.querySelector('.music-ico-pause'), true);
       }
-    },
+      this._currentPlaying = null;
+    }
+  },
     init: function () {
       var btns = document.querySelectorAll('.music-play-btn');
       for (var i = 0; i < btns.length; i++) {
@@ -251,14 +232,17 @@
             }
           });
           audioEl.addEventListener('play', function () {
+            musicPlayer._currentPlaying = audioEl;
             utils.toggleHidden(playIconEl, true);
             utils.toggleHidden(pauseIconEl, false);
           });
           audioEl.addEventListener('pause', function () {
+            musicPlayer._currentPlaying = null;
             utils.toggleHidden(playIconEl, false);
             utils.toggleHidden(pauseIconEl, true);
           });
           audioEl.addEventListener('ended', function () {
+            musicPlayer._currentPlaying = null;
             utils.toggleHidden(playIconEl, false);
             utils.toggleHidden(pauseIconEl, true);
             audioEl.currentTime = 0;
@@ -517,8 +501,9 @@
       this._container = document.getElementById('moments-container');
       if (!this._container || utils.isBound(this._container)) return;
 
-      // 判断是否是详情页（URL 存在 ?id= 查询参数）
-      this._isDetailPage = new URLSearchParams(window.location.search).has('id');
+      // 判断是否是详情页（URL 存在 ?id= 查询参数，或路径以 /content/ 开头）
+      var url = new URL(window.location.href);
+      this._isDetailPage = url.searchParams.has('id') || url.pathname.startsWith('/content/');
 
       if (this._isDetailPage) {
         this._loadDetailPage();
@@ -661,8 +646,17 @@
     // - API 失败：保留静态内容，不显示错误
     _loadDetailPage: async function () {
       var self = this;
+      var url = new URL(window.location.href);
       // 从 URL query 提取动态 ID：/?id=xxx → xxx
-      var id = new URLSearchParams(window.location.search).get('id');
+      // 或从路径提取：/content/xxx.html → xxx
+      var id = url.searchParams.get('id');
+      if (!id) {
+        // 从 /content/xxx.html 提取 xxx
+        var match = url.pathname.match(/^\/content\/([^/]+)\.html$/);
+        if (match) {
+          id = match[1];
+        }
+      }
       if (!id) {
         self._showError('无效的动态地址');
         return;
@@ -756,6 +750,26 @@
       this._bindCardClick();
     },
 
+    _bindCardClick: function () {
+      var enabled = localStorage.getItem('moment-link-to-inner') !== '0';
+      if (!enabled) return;
+      var self = this;
+      var articles = this._container.querySelectorAll('article[data-moment-id]');
+      for (var i = 0; i < articles.length; i++) {
+        var article = articles[i];
+        if (article.dataset.clickBound) continue;
+        article.dataset.clickBound = 'true';
+        article.addEventListener('click', function (e) {
+          if (self._isDetailPage) return;
+          if (!e.target.closest('.moment-nickname')) return;
+          var momentId = this.dataset.momentId;
+          if (momentId) {
+            window.location.href = '/?id=' + encodeURIComponent(momentId);
+          }
+        });
+      }
+    },
+
     // 绑定详情页上下篇导航点击（不刷新页面）
     _bindNavClick: function () {
       var self = this;
@@ -767,33 +781,10 @@
         item.addEventListener('click', function () {
           var navId = this.getAttribute('data-nav-id');
           if (navId) {
-            // 更新 URL 但不刷新页面
-            if (window.history && window.history.replaceState) {
-              window.history.replaceState(null, '', '/?id=' + navId);
+            if (window.history && window.history.pushState) {
+              window.history.pushState(null, '', '/?id=' + navId);
             }
-            // 重新加载详情内容
             self._loadDetailPage();
-          }
-        });
-      }
-    },
-
-    _bindCardClick: function () {
-      var self = this;
-      var articles = this._container.querySelectorAll('article[data-moment-route-id]');
-
-      for (var i = 0; i < articles.length; i++) {
-        var article = articles[i];
-        if (article.dataset.clickBound) continue;
-        article.dataset.clickBound = 'true';
-        article.addEventListener('click', function (e) {
-          // 详情页不跳转
-          if (self._isDetailPage) return;
-          // 只有点击昵称区域才跳转，其他区域（内容区、菜单、头像等）都不跳转
-          if (!e.target.closest('.moment-nickname')) return;
-          var routeId = this.dataset.momentRouteId;
-          if (routeId) {
-            window.location.href = '/?id=' + encodeURIComponent(routeId);
           }
         });
       }
@@ -861,6 +852,26 @@
     expandButton.init();
     passwordProtect.init();
     mediaError.init();
+    bindCardClick();
+  }
+
+  // 绑定昵称点击跳转（受 moment-link-to-inner 设置控制）
+  function bindCardClick() {
+    var enabled = localStorage.getItem('moment-link-to-inner') !== '0';
+    if (!enabled) return;
+    var articles = document.querySelectorAll('article[data-moment-id]');
+    for (var i = 0; i < articles.length; i++) {
+      var article = articles[i];
+      if (article.dataset.clickBound) continue;
+      article.dataset.clickBound = 'true';
+      article.addEventListener('click', function (e) {
+        if (!e.target.closest('.moment-nickname')) return;
+        var momentId = this.dataset.momentId;
+        if (momentId && window.location.pathname === '/') {
+          window.location.href = '/?id=' + encodeURIComponent(momentId);
+        }
+      });
+    }
   }
 
   // 完整初始化流程
@@ -868,6 +879,26 @@
     initPage();
     dynamicLoader.init();
   }
+
+  document.addEventListener('moment-saved', function () {
+    var container = document.getElementById('moments-container');
+    if (container) {
+      container.innerHTML = '<div class="loading-indicator py-6 text-center"><span class="loading-breath text-[14px] text-moments-sub dark:text-moments-dark-sub">正在加载...</span></div>';
+      dynamicLoader._currentPage = 1;
+      dynamicLoader._hasMore = true;
+      dynamicLoader._loadHomePage();
+    }
+  });
+
+  document.addEventListener('moment-deleted', function () {
+    var container = document.getElementById('moments-container');
+    if (container) {
+      container.innerHTML = '<div class="loading-indicator py-6 text-center"><span class="loading-breath text-[14px] text-moments-sub dark:text-moments-dark-sub">正在加载...</span></div>';
+      dynamicLoader._currentPage = 1;
+      dynamicLoader._hasMore = true;
+      dynamicLoader._loadHomePage();
+    }
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
